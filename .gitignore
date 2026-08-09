@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment & secrets — never commit
+.env
+.env.*
+!.env.example
+*.env
+
+# Firestore / CloudSW3 server secrets
+sdks/Firestore/config-cloudsw3.json
+sdks/Firestore/config-cloudsw3_dev.json
+config-cloudsw3*.json
+
+# Logs
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Build / cache
+dist/
+build/
+.next/
+out/
+.cache/
+.parcel-cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.opencode/
+
+# Coverage / test
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+
+# Misc
+tmp/
+temp/
