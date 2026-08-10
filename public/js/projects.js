@@ -87,11 +87,15 @@ const newProjectBtn = byId("newProjectBtn");
 const newProjectForm = byId("newProjectForm");
 
 newProjectBtn.addEventListener("click", () => {
-  if (typeof dialog.showModal === "function") dialog.showModal();
+  if (typeof dialog.showModal === "function") {
+    dialog.showModal();
+    requestAnimationFrame(() => newProjectForm.elements.name.focus());
+  }
   else dialog.setAttribute("open", "");
 });
 
 byId("dialogCancel").addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
 
 newProjectForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -116,7 +120,6 @@ newProjectForm.addEventListener("submit", (e) => {
   newProjectForm.reset();
   applyFilters();
   showToast(`Project "${name}" created (mock). Connect to POST /api/v1/projects.`);
-  if (desc) console.log("Project description:", desc);
 });
 
 function escapeHtml(s) {
