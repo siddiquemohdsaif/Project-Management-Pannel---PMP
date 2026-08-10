@@ -76,7 +76,15 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
   button.addEventListener("click", () => {
     const screen = button.dataset.screen;
     if (screen === "Gantt Chart") {
-      window.location.href = "/gantt.html";
+      window.location.href = "/gantt";
+      return;
+    }
+    if (screen === "Projects") {
+      window.location.href = "/projects";
+      return;
+    }
+    if (screen === "Dashboard") {
+      window.location.href = "/";
       return;
     }
     document.querySelectorAll(".nav-item").forEach((item) => {

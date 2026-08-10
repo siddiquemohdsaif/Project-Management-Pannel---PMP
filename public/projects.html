@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Project Management Panel — browse and manage projects." />
+    <title>Projects · Project Management Panel</title>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/projects.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-logo-frame">
+            <img src="./assets/pmp-logo.png" alt="PMP — Project Management Panel" />
+          </div>
+          <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">×</button>
+        </div>
+
+        <nav class="primary-nav">
+          <button class="nav-item" type="button" data-screen="Dashboard">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-7h5v7"/></svg><span>Dashboard</span>
+          </button>
+          <button class="nav-item active" type="button" data-screen="Projects" aria-current="page">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg><span>Projects</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Tasks">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7.5 12 3 3 6.5-7"/></svg><span>Tasks</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Gantt Chart">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4v16M4 7h6M8 12h12M4 17h10"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="17" r="1"/></svg><span>Gantt Chart</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Members">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7" r="4"/><path d="M16 4.2a4 4 0 0 1 0 7.6M22 20v-1.5a4 4 0 0 0-3-3.7"/></svg><span>Members</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Reports">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 16v-3M12 16V8M17 16v-6"/></svg><span>Reports</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Activity">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21"/></svg><span>Activity</span>
+          </button>
+          <button class="nav-item" type="button" data-screen="Settings">
+            <svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg><span>Settings</span>
+          </button>
+        </nav>
+
+        <button class="sidebar-profile" type="button" data-screen="Profiles" aria-label="Open profiles">
+          <span class="avatar avatar-small">JD</span>
+          <span class="profile-copy"><strong>John Doe</strong><small>john@example.com</small></span>
+          <span class="profile-arrow" aria-hidden="true">›</span>
+        </button>
+      </aside>
+
+      <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+
+      <main class="main-content">
+        <header class="topbar topbar-projects">
+          <div class="project-heading">
+            <button class="mobile-menu" id="mobileMenu" type="button" aria-label="Open navigation">
+              <span></span><span></span><span></span>
+            </button>
+            <h1 class="page-title">Projects</h1>
+          </div>
+          <button class="btn-primary" id="newProjectBtn" type="button">+ New Project</button>
+        </header>
+
+        <section class="projects-page" aria-labelledby="projectsHeading">
+          <h2 class="sr-only" id="projectsHeading">Projects list</h2>
+
+          <div class="projects-toolbar">
+            <label class="search-field">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input id="searchInput" type="search" placeholder="Search projects..." autocomplete="off" />
+            </label>
+            <label class="status-filter">
+              <select id="statusFilter" aria-label="Filter by status">
+                <option value="all">All Status</option>
+                <option value="Active">Active</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Archived">Archived</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="projects-card">
+            <div class="table-wrap">
+              <table class="projects-table" id="projectsTable">
+                <thead>
+                  <tr>
+                    <th>Project Name</th>
+                    <th>Status</th>
+                    <th>Progress</th>
+                    <th>Members</th>
+                    <th>Updated</th>
+                  </tr>
+                </thead>
+                <tbody id="projectsBody">
+                  <tr data-name="Acme Mobile App" data-status="Active">
+                    <td class="project-name">Acme Mobile App</td>
+                    <td><span class="status-pill active">Active</span></td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar"><i style="width: 67%"></i></div>
+                        <span>62%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="members-cell">
+                        <span class="member-avatars">
+                          <img src="https://i.pravatar.cc/100?img=1" alt="Member"/><img src="https://i.pravatar.cc/100?img=2" alt="Member"/><img src="https://i.pravatar.cc/100?img=3" alt="Member"/>
+                        </span>
+                        <span class="more-count">+3</span>
+                      </div>
+                    </td>
+                    <td class="muted">May 12, 2024</td>
+                  </tr>
+                  <tr data-name="Website Redesign" data-status="Active">
+                    <td class="project-name">Website Redesign</td>
+                    <td><span class="status-pill active">Active</span></td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar"><i style="width: 45%"></i></div>
+                        <span>65%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="members-cell">
+                        <span class="member-avatars">
+                          <img src="https://i.pravatar.cc/100?img=4" alt="Member"/><img src="https://i.pravatar.cc/100?img=5" alt="Member"/><img src="https://i.pravatar.cc/100?img=6" alt="Member"/>
+                        </span>
+                        <span class="more-count">+2</span>
+                      </div>
+                    </td>
+                    <td class="muted">May 10, 2024</td>
+                  </tr>
+                  <tr data-name="API Integration" data-status="Active">
+                    <td class="project-name">API Integration</td>
+                    <td><span class="status-pill active">Active</span></td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar"><i style="width: 81%"></i></div>
+                        <span>81%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="members-cell">
+                        <span class="member-avatars">
+                          <img src="https://i.pravatar.cc/100?img=7" alt="Member"/><img src="https://i.pravatar.cc/100?img=8" alt="Member"/><img src="https://i.pravatar.cc/100?img=9" alt="Member"/>
+                        </span>
+                        <span class="more-count">+4</span>
+                      </div>
+                    </td>
+                    <td class="muted">May 9, 2024</td>
+                  </tr>
+                  <tr data-name="Marketing Platform" data-status="On Hold">
+                    <td class="project-name">Marketing Platform</td>
+                    <td><span class="status-pill on-hold">On Hold</span></td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar hold"><i style="width: 20%"></i></div>
+                        <span>20%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="members-cell">
+                        <span class="member-avatars">
+                          <img src="https://i.pravatar.cc/100?img=10" alt="Member"/><img src="https://i.pravatar.cc/100?img=11" alt="Member"/><img src="https://i.pravatar.cc/100?img=12" alt="Member"/>
+                        </span>
+                        <span class="more-count">+1</span>
+                      </div>
+                    </td>
+                    <td class="muted">May 6, 2024</td>
+                  </tr>
+                  <tr data-name="Internal Tool" data-status="Archived">
+                    <td class="project-name">Internal Tool</td>
+                    <td><span class="status-pill archived">Archived</span></td>
+                    <td>
+                      <div class="progress-cell">
+                        <div class="progress-bar archived"><i style="width: 100%"></i></div>
+                        <span>100%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="members-cell">
+                        <span class="member-avatars">
+                          <img src="https://i.pravatar.cc/100?img=13" alt="Member"/><img src="https://i.pravatar.cc/100?img=14" alt="Member"/><img src="https://i.pravatar.cc/100?img=15" alt="Member"/>
+                        </span>
+                      </div>
+                    </td>
+                    <td class="muted">Apr 28, 2024</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div class="empty-state" id="emptyState" hidden>No projects match your search.</div>
+            </div>
+
+            <footer class="projects-footer">
+              <span id="footerCount">Showing 1 to 5 of 5 projects</span>
+              <div class="pagination" role="navigation" aria-label="Pagination">
+                <button type="button" aria-label="First page" disabled>«</button>
+                <button type="button" aria-label="Previous page" disabled>‹</button>
+                <button type="button" class="active" aria-current="page">1</button>
+                <button type="button" aria-label="Next page" disabled>›</button>
+                <button type="button" aria-label="Last page" disabled>»</button>
+              </div>
+            </footer>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- New Project Dialog -->
+    <dialog id="newProjectDialog" class="project-dialog">
+      <form method="dialog" class="dialog-card" id="newProjectForm">
+        <h3>Create New Project</h3>
+        <label>Project Name<input name="name" required placeholder="e.g., Commerce Redesign" maxlength="80" /></label>
+        <label>Description<textarea name="description" rows="3" placeholder="Brief description (optional)"></textarea></label>
+        <menu>
+          <button type="button" value="cancel" id="dialogCancel">Cancel</button>
+          <button type="submit" value="create" class="btn-primary">Create</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="./js/projects.js"></script>
+  </body>
+</html>

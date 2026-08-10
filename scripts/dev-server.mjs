@@ -16,7 +16,7 @@ const types = {
 
 createServer((request, response) => {
   const requestPath = decodeURIComponent(new URL(request.url, "http://localhost").pathname);
-  const routeMap = { "/": "index.html", "/gantt": "gantt.html" };
+  const routeMap = { "/": "index.html", "/gantt": "gantt.html", "/projects": "projects.html" };
   const relativePath = routeMap[requestPath] || requestPath.replace(/^\/+/, "");
   const filePath = normalize(join(publicRoot, relativePath));
 

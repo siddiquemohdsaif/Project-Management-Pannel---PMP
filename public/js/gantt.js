@@ -27,7 +27,12 @@ byId("sidebarClose").addEventListener("click", () => setSidebar(false));
 sidebarScrim.addEventListener("click", () => setSidebar(false));
 
 document.querySelectorAll("[data-route]").forEach((button) => button.addEventListener("click", () => { window.location.href = button.dataset.route; }));
-document.querySelectorAll("[data-screen]").forEach((button) => button.addEventListener("click", () => showToast(`${button.dataset.screen} screen is planned next.`)));
+document.querySelectorAll("[data-screen]").forEach((button) => button.addEventListener("click", () => {
+  const s = button.dataset.screen;
+  if (s === "Dashboard") { window.location.href = "/"; return; }
+  if (s === "Projects") { window.location.href = "/projects"; return; }
+  showToast(`${s} screen is planned next.`);
+}));
 
 const projectSelector = byId("projectSelector");
 const projectDropdown = byId("projectDropdown");
