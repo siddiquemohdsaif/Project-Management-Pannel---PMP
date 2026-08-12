@@ -272,7 +272,7 @@ button { color: inherit; }
 .progress-trend { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #c9efda; border-radius: 999px; color: #087f3d; background: #effbf4; font-size: 11px; font-weight: 750; white-space: nowrap; }
 .progress-trend b { font-size: 13px; line-height: 1; }
 .progress-card-body { position: relative; z-index: 1; display: flex; height: 100px; align-items: center; gap: 17px; margin-top: 3px; }
-.progress-orbit { position: relative; display: grid; width: 82px; height: 82px; flex: 0 0 82px; place-items: center; border-radius: 50%; background: conic-gradient(var(--blue-600) 0 62%, #dce8fb 62% 100%); box-shadow: 0 8px 20px rgb(25 103 232 / 15%); transform: rotate(-90deg); }
+.progress-orbit { position: relative; display: grid; width: 82px; height: 82px; aspect-ratio: 1 / 1; flex: 0 0 82px; place-items: center; border-radius: 50%; background: conic-gradient(var(--blue-600) 0 62%, #dce8fb 62% 100%); box-shadow: 0 8px 20px rgb(25 103 232 / 15%); transform: rotate(-90deg); }
 .progress-orbit::before { position: absolute; inset: 7px; content: ""; border-radius: 50%; background: linear-gradient(145deg, #fff, #f7faff); box-shadow: inset 0 0 0 1px rgb(27 106 237 / 7%); }
 .progress-orbit-center { position: relative; z-index: 1; display: flex; align-items: baseline; transform: rotate(90deg); }
 .progress-orbit-center strong { color: var(--blue-600); font-size: 31px; line-height: 1; letter-spacing: -.06em; }
@@ -407,4 +407,126 @@ button { color: inherit; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+}
+
+@media (min-width: 821px) {
+/* 80%-style density for dashboard and projects at normal browser zoom. */
+.dashboard-page,
+.projects-shell {
+  --sidebar-width: 248px;
+}
+.dashboard-page .brand,
+.projects-shell .brand { min-height: 99px; padding: 14px 16px 10px; }
+.dashboard-page .brand-logo-frame,
+.projects-shell .brand-logo-frame { width: 141px; height: 61px; }
+.dashboard-page .brand-logo-frame img,
+.projects-shell .brand-logo-frame img { width: 141px; }
+.dashboard-page .primary-nav,
+.projects-shell .primary-nav { gap: 6px; padding: 4px 13px 18px; }
+.dashboard-page .nav-item,
+.projects-shell .nav-item { min-height: 51px; gap: 15px; padding: 0 18px; border-radius: 10px; font-size: 14px; }
+.dashboard-page .nav-icon,
+.projects-shell .nav-icon { width: 22px; height: 22px; flex-basis: 22px; }
+.dashboard-page .sidebar-profile,
+.projects-shell .sidebar-profile { min-height: 94px; gap: 10px; padding: 18px 19px; }
+.dashboard-page .avatar-small,
+.projects-shell .avatar-small { width: 42px; height: 42px; flex-basis: 42px; font-size: 11px; }
+.dashboard-page .profile-copy strong,
+.projects-shell .profile-copy strong { font-size: 13px; }
+.dashboard-page .profile-copy small,
+.projects-shell .profile-copy small { font-size: 10px; }
+.dashboard-page .profile-arrow,
+.projects-shell .profile-arrow { font-size: 19px; }
+.dashboard-page .topbar,
+.projects-shell .topbar { height: 83px; padding: 0 27px 0 34px; }
+.dashboard-page .project-heading,
+.projects-shell .project-heading { gap: 10px; }
+.dashboard-page .project-identity-mark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+.dashboard-page .project-identity-mark::before { inset: 6px; border-radius: 9px; }
+.dashboard-page .project-identity-mark i { width: 10px; height: 10px; border-width: 2px; }
+.dashboard-page .project-people { width: 21px; height: 21px; }
+.dashboard-page .project-selector { min-width: 228px; gap: 14px; padding: 6px 10px 6px 8px; border-radius: 10px; }
+.dashboard-page .project-selector-copy small { font-size: 8px; }
+.dashboard-page .project-selector-copy #selectedProject { font-size: clamp(20px, 1.68vw, 27px); }
+.dashboard-page .project-selector .chevron { width: 7px; height: 7px; flex-basis: 7px; }
+.dashboard-page .project-dropdown { top: 47px; width: 216px; padding: 6px; }
+.dashboard-page .dropdown-label { padding: 7px 8px 5px; font-size: 10px; }
+.dashboard-page .project-dropdown button { gap: 2px; padding: 9px; border-radius: 7px; }
+.dashboard-page .topbar-actions { gap: 16px; }
+.dashboard-page .notification-button { width: 37px; height: 40px; }
+.dashboard-page .bell { left: 7px; bottom: 6px; width: 17px; height: 18px; }
+.dashboard-page .bell::before { top: -3px; left: 6px; width: 4px; height: 5px; }
+.dashboard-page .bell::after { bottom: -4px; left: 6px; width: 6px; height: 4px; }
+.dashboard-page .notification-count { width: 20px; height: 20px; font-size: 10px; }
+.dashboard-page .notification-dropdown { top: 44px; right: -43px; width: 276px; }
+.dashboard-page .notification-title { padding: 12px; }
+.dashboard-page .notification-dropdown > button { gap: 9px; padding: 11px 12px; }
+.dashboard-page .top-avatar { width: 45px; height: 45px; border-width: 2px; font-size: 13px; }
+.dashboard-page .dashboard { max-width: 1280px; padding: 0 26px 22px; }
+.dashboard-page .dashboard-toolbar { min-height: 66px; gap: 19px; }
+.dashboard-page .project-tabs { height: 66px; gap: clamp(22px, 3.2vw, 54px); }
+.dashboard-page .tab { height: 50px; padding: 0 7px; font-size: 14px; }
+.dashboard-page .tab::after { height: 2px; }
+.dashboard-page .date-range { height: 42px; gap: 9px; margin-bottom: 11px; padding: 0 11px; border-radius: 8px; font-size: 13px; }
+.dashboard-page .calendar-mini { width: 14px; height: 13px; }
+.dashboard-page .primary-stats,
+.dashboard-page .status-stats { gap: 13px; }
+.dashboard-page .primary-stats { margin-top: 18px; }
+.dashboard-page .status-stats { margin-top: 16px; }
+.dashboard-page .stat-card { min-height: 164px; padding: 21px 20px; border-radius: 10px; }
+.dashboard-page .stat-label { min-height: 25px; font-size: 15px; }
+.dashboard-page .stat-main { gap: 15px; margin-top: 14px; }
+.dashboard-page .stat-main strong { font-size: clamp(26px, 2.12vw, 34px); }
+.dashboard-page .stat-main .finish-date { font-size: clamp(22px, 1.68vw, 28px); }
+.dashboard-page .stat-main small { font-size: 14px; }
+.dashboard-page .metric-icon { width: 53px; height: 53px; flex-basis: 53px; }
+.dashboard-page .metric-icon svg { width: 27px; height: 27px; }
+.dashboard-page .progress-trend { gap: 3px; padding: 5px 6px; font-size: 9px; }
+.dashboard-page .progress-card-body { height: 80px; gap: 14px; }
+.dashboard-page .progress-orbit { width: 66px; height: 66px; min-width: 66px; max-width: 66px; aspect-ratio: 1 / 1; flex: 0 0 66px; align-self: center; }
+.dashboard-page .progress-orbit::before { inset: 6px; }
+.dashboard-page .progress-orbit-center strong { font-size: 25px; }
+.dashboard-page .progress-orbit-center span { font-size: 12px; }
+.dashboard-page .on-track { gap: 5px; font-size: 10px; }
+.dashboard-page .progress-context > strong { font-size: 14px; }
+.dashboard-page .progress-context small { font-size: 10px; }
+.dashboard-page .progress-track { height: 14px; padding-right: 43px; }
+.dashboard-page .progress-track::before,
+.dashboard-page .progress-track > span { top: 4px; height: 6px; }
+.dashboard-page .progress-track::before { right: 38px; }
+.dashboard-page .progress-track > span { max-width: calc(100% - 38px); }
+.dashboard-page .progress-track small { font-size: 11px; }
+.dashboard-page .status-card { min-height: 142px; padding: 18px 18px 14px; border-radius: 10px; }
+.dashboard-page .status-label { min-height: 23px; font-size: 14px; }
+.dashboard-page .status-body { gap: 14px; margin-top: 10px; }
+.dashboard-page .status-body strong { font-size: 30px; }
+.dashboard-page .status-symbol { width: 50px; height: 50px; flex-basis: 50px; }
+.dashboard-page .status-symbol svg { width: 26px; height: 26px; }
+.dashboard-page .status-card > small { margin: -6px 0 0 63px; font-size: 13px; }
+.dashboard-page .charts-grid { gap: 16px; margin-top: 18px; }
+.dashboard-page .chart-card { min-height: 400px; padding: 21px; border-radius: 10px; }
+.dashboard-page .card-heading { min-height: 38px; }
+.dashboard-page .card-heading h2 { font-size: 17px; }
+.dashboard-page .card-heading p { margin-top: 5px; font-size: 10px; }
+.dashboard-page .canvas-wrap { height: 280px; margin-top: 5px; }
+.dashboard-page .chart-grid text,
+.dashboard-page .chart-values text,
+.dashboard-page .chart-dates text { font-size: 10px; }
+.dashboard-page .chart-legend { gap: 30px; font-size: 12px; }
+.dashboard-page .line-key { width: 22px; }
+.dashboard-page .status-insight { gap: 6px; padding: 6px 8px; font-size: 10px; }
+.dashboard-page .donut-layout { grid-template-columns: minmax(200px, .92fr) minmax(248px, 1.08fr); gap: 24px; min-height: 312px; }
+.dashboard-page .donut-chart { width: min(240px, 100%); border-width: 8px; }
+.dashboard-page .donut-center strong { font-size: 35px; }
+.dashboard-page .donut-center span { margin-top: 6px; font-size: 12px; }
+.dashboard-page .donut-center em { margin-top: 6px; font-size: 9px; }
+.dashboard-page .donut-legend { gap: 8px; }
+.dashboard-page .donut-legend li { padding: 8px 10px; border-radius: 8px; }
+.dashboard-page .legend-row { gap: 11px; }
+.dashboard-page .legend-row strong { font-size: 11px; }
+.dashboard-page .legend-value b { font-size: 12px; }
+.dashboard-page .legend-value small { min-width: 25px; font-size: 10px; }
+.dashboard-page .legend-dot { width: 13px; height: 13px; border-radius: 4px; }
+.dashboard-page .legend-meter { height: 3px; margin: 6px 0 0 22px; }
+.dashboard-page .dashboard-footer { gap: 16px; padding: 20px 2px 2px; font-size: 10px; }
 }

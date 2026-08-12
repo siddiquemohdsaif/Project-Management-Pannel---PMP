@@ -7,7 +7,7 @@ const filterButton = byId("filterButton");
 const filterPopover = byId("filterPopover");
 const taskTooltip = byId("taskTooltip");
 let toastTimer;
-let dayWidth = 56;
+let dayWidth = 45;
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -66,7 +66,7 @@ byId("applyFilters").addEventListener("click", () => {
 });
 
 function setZoom(nextWidth) {
-  dayWidth = Math.max(40, Math.min(76, nextWidth));
+  dayWidth = Math.max(32, Math.min(61, nextWidth));
   timeline.style.setProperty("--day-width", `${dayWidth}px`);
   requestAnimationFrame(renderDependencies);
   showToast(`Timeline zoom: ${dayWidth}px per date column`);
