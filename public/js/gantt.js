@@ -1,3 +1,5 @@
+import { watchFirebaseUserProfile } from "./auth-ui.js";
+
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");
 const sidebarScrim = byId("sidebarScrim");
@@ -8,6 +10,8 @@ const filterPopover = byId("filterPopover");
 const taskTooltip = byId("taskTooltip");
 let toastTimer;
 let dayWidth = 45;
+
+watchFirebaseUserProfile();
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -29,8 +33,12 @@ sidebarScrim.addEventListener("click", () => setSidebar(false));
 document.querySelectorAll("[data-route]").forEach((button) => button.addEventListener("click", () => { window.location.href = button.dataset.route; }));
 document.querySelectorAll("[data-screen]").forEach((button) => button.addEventListener("click", () => {
   const s = button.dataset.screen;
-  if (s === "Dashboard") { window.location.href = "/"; return; }
+  if (s === "Dashboard") { window.location.href = "/dashboard"; return; }
   if (s === "Projects") { window.location.href = "/projects"; return; }
+  if (s === "Tasks") { window.location.href = "/tasks"; return; }
+  if (s === "Members") { window.location.href = "/members"; return; }
+  if (s === "Activity") { window.location.href = "/activity"; return; }
+  if (s === "Settings") { window.location.href = "/settings"; return; }
   showToast(`${s} screen is planned next.`);
 }));
 

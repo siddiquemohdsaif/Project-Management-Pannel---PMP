@@ -21,6 +21,9 @@ yarn-error.log*
 pnpm-debug.log*
 *.log
 
+# Local visual QA screenshots
+*-check.png
+
 # Build / cache
 dist/
 build/

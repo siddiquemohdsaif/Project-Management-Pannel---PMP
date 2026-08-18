@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Project Management Panel — browse and manage projects." />
     <title>Projects · Project Management Panel</title>
+    <script src="./js/auth-guard.js"></script>
     <link rel="stylesheet" href="./css/styles.css" />
     <link rel="stylesheet" href="./css/projects.css" />
+    <link rel="stylesheet" href="./css/project-dialog.css" />
   </head>
   <body class="projects-shell">
     <div class="app-shell">
@@ -68,6 +70,13 @@
         <section class="projects-page" aria-labelledby="projectsHeading">
           <h2 class="sr-only" id="projectsHeading">Projects list</h2>
 
+          <div class="projects-summary-strip" aria-label="Project summary">
+            <span><strong>5</strong> Projects</span>
+            <span><strong>3</strong> Active</span>
+            <span><strong>1</strong> On Hold</span>
+            <span><strong>1</strong> Archived</span>
+          </div>
+
           <div class="projects-toolbar">
             <label class="search-field">
               <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -94,11 +103,12 @@
                     <th>Progress</th>
                     <th>Members</th>
                     <th>Updated</th>
+                    <th aria-label="Edit project"></th>
                   </tr>
                 </thead>
                 <tbody id="projectsBody">
-                  <tr data-name="Acme Mobile App" data-status="Active">
-                    <td class="project-name">Acme Mobile App</td>
+                  <tr data-name="Acme Mobile App" data-status="Active" data-category="Mobile app" data-tasks="128 tasks">
+                    <td class="project-name"><span class="project-mark">AM</span><span class="project-name-copy"><strong>Acme Mobile App</strong><small>Mobile app · 128 tasks</small></span></td>
                     <td><span class="status-pill active">Active</span></td>
                     <td>
                       <div class="progress-cell">
@@ -115,9 +125,10 @@
                       </div>
                     </td>
                     <td class="muted">May 12, 2024</td>
+                    <td><button class="edit-project-button" type="button" aria-label="Edit Acme Mobile App"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button></td>
                   </tr>
-                  <tr data-name="Website Redesign" data-status="Active">
-                    <td class="project-name">Website Redesign</td>
+                  <tr data-name="Website Redesign" data-status="Active" data-category="Website" data-tasks="84 tasks">
+                    <td class="project-name"><span class="project-mark">WR</span><span class="project-name-copy"><strong>Website Redesign</strong><small>Website · 84 tasks</small></span></td>
                     <td><span class="status-pill active">Active</span></td>
                     <td>
                       <div class="progress-cell">
@@ -134,9 +145,10 @@
                       </div>
                     </td>
                     <td class="muted">May 10, 2024</td>
+                    <td><button class="edit-project-button" type="button" aria-label="Edit Website Redesign"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button></td>
                   </tr>
-                  <tr data-name="API Integration" data-status="Active">
-                    <td class="project-name">API Integration</td>
+                  <tr data-name="API Integration" data-status="Active" data-category="Platform" data-tasks="47 tasks">
+                    <td class="project-name"><span class="project-mark">AI</span><span class="project-name-copy"><strong>API Integration</strong><small>Platform · 47 tasks</small></span></td>
                     <td><span class="status-pill active">Active</span></td>
                     <td>
                       <div class="progress-cell">
@@ -153,9 +165,10 @@
                       </div>
                     </td>
                     <td class="muted">May 9, 2024</td>
+                    <td><button class="edit-project-button" type="button" aria-label="Edit API Integration"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button></td>
                   </tr>
-                  <tr data-name="Marketing Platform" data-status="On Hold">
-                    <td class="project-name">Marketing Platform</td>
+                  <tr data-name="Marketing Platform" data-status="On Hold" data-category="Marketing" data-tasks="62 tasks">
+                    <td class="project-name"><span class="project-mark">MP</span><span class="project-name-copy"><strong>Marketing Platform</strong><small>Marketing · 62 tasks</small></span></td>
                     <td><span class="status-pill on-hold">On Hold</span></td>
                     <td>
                       <div class="progress-cell">
@@ -172,9 +185,10 @@
                       </div>
                     </td>
                     <td class="muted">May 6, 2024</td>
+                    <td><button class="edit-project-button" type="button" aria-label="Edit Marketing Platform"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button></td>
                   </tr>
-                  <tr data-name="Internal Tool" data-status="Archived">
-                    <td class="project-name">Internal Tool</td>
+                  <tr data-name="Internal Tool" data-status="Archived" data-category="Operations" data-tasks="36 tasks">
+                    <td class="project-name"><span class="project-mark">IT</span><span class="project-name-copy"><strong>Internal Tool</strong><small>Operations · 36 tasks</small></span></td>
                     <td><span class="status-pill archived">Archived</span></td>
                     <td>
                       <div class="progress-cell">
@@ -190,6 +204,7 @@
                       </div>
                     </td>
                     <td class="muted">Apr 28, 2024</td>
+                    <td><button class="edit-project-button" type="button" aria-label="Edit Internal Tool"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg></button></td>
                   </tr>
                 </tbody>
               </table>
@@ -213,13 +228,58 @@
 
     <!-- New Project Dialog -->
     <dialog id="newProjectDialog" class="project-dialog">
-      <form method="dialog" class="dialog-card" id="newProjectForm">
-        <h3>Create New Project</h3>
-        <label>Project Name<input name="name" required placeholder="e.g., Commerce Redesign" maxlength="80" /></label>
-        <label>Description<textarea name="description" rows="3" placeholder="Brief description (optional)"></textarea></label>
+      <form method="dialog" class="dialog-card project-form-card" id="newProjectForm">
+        <button class="dialog-close-button" type="button" id="dialogClose" aria-label="Close dialog">×</button>
+        <div class="project-dialog-head">
+          <span class="project-dialog-icon" aria-hidden="true"><img src="./assets/photos/create_task_icon.png" alt="" /></span>
+          <div>
+            <h3>Create New Project</h3>
+            <p>Set the project identity, platform, and starting team.</p>
+          </div>
+        </div>
+
+        <div class="project-form-section">
+          <label class="project-icon-upload field-wide">
+            <input id="projectIconInput" type="file" name="iconFile" accept="image/*" />
+            <span class="project-icon-preview" id="projectIconPreview">
+              <img id="projectIconPreviewImage" alt="" hidden />
+              <span id="projectIconPreviewText"><img src="./assets/photos/project_icon_add.png" alt="" /></span>
+            </span>
+            <span class="project-icon-upload-copy">
+              <strong>Project Icon</strong>
+              <small>Select from files</small>
+            </span>
+          </label>
+
+          <label class="project-field field-wide">Project Name<input name="name" required placeholder="e.g., Commerce Redesign" maxlength="80" /></label>
+
+          <div class="project-field">
+            <span>Platform</span>
+            <details class="project-dropdown-select" id="projectPlatformSelect">
+              <summary><span id="projectPlatformSummary">Android</span></summary>
+              <div class="project-dropdown-panel">
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="Android" checked /><span>Android</span></label>
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="iOS" /><span>iOS</span></label>
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="Web" /><span>Web</span></label>
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="Node" /><span>Node</span></label>
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="Webapp" /><span>Webapp</span></label>
+                <label class="project-dropdown-option"><input data-project-platform-input type="radio" name="platform" value="Other" /><span>Other</span></label>
+              </div>
+            </details>
+          </div>
+
+          <div class="project-field">
+            <span>Members</span>
+            <details class="project-member-select" id="projectMemberSelect">
+              <summary><span id="projectMembersSummary">Choose members</span></summary>
+              <div class="project-member-panel" id="projectMembersOptions"></div>
+            </details>
+          </div>
+        </div>
+
         <menu>
           <button type="button" value="cancel" id="dialogCancel">Cancel</button>
-          <button type="submit" value="create" class="btn-primary">Create</button>
+          <button type="submit" value="create" class="btn-primary">Create Project</button>
         </menu>
       </form>
     </dialog>

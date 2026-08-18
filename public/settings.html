@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Project Management Panel user profile settings." />
+    <title>Settings - Project Management Panel</title>
+    <script src="./js/auth-guard.js"></script>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/projects.css" />
+    <link rel="stylesheet" href="./css/settings.css" />
+  </head>
+  <body class="projects-shell settings-shell">
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+        <div class="brand"><div class="brand-logo-frame"><img src="./assets/pmp-logo.png" alt="PMP - Project Management Panel" /></div><button class="sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">&times;</button></div>
+        <nav class="primary-nav">
+          <button class="nav-item" type="button" data-screen="Dashboard"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-7h5v7"/></svg><span>Dashboard</span></button>
+          <button class="nav-item" type="button" data-screen="Projects"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg><span>Projects</span></button>
+          <button class="nav-item" type="button" data-screen="Tasks"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7.5 12 3 3 6.5-7"/></svg><span>Tasks</span></button>
+          <button class="nav-item" type="button" data-screen="Gantt Chart"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4v16M4 7h6M8 12h12M4 17h10"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="17" r="1"/></svg><span>Gantt Chart</span></button>
+          <button class="nav-item" type="button" data-screen="Members"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7" r="4"/><path d="M16 4.2a4 4 0 0 1 0 7.6M22 20v-1.5a4 4 0 0 0-3-3.7"/></svg><span>Members</span></button>
+          <button class="nav-item" type="button" data-screen="Reports"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 16v-3M12 16V8M17 16v-6"/></svg><span>Reports</span></button>
+          <button class="nav-item" type="button" data-screen="Activity"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21"/></svg><span>Activity</span></button>
+          <button class="nav-item active" type="button" data-screen="Settings" aria-current="page"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg><span>Settings</span></button>
+        </nav>
+        <button class="sidebar-profile" type="button" data-screen="Profiles"><span class="avatar avatar-small">JD</span><span class="profile-copy"><strong>John Doe</strong><small>john@example.com</small></span><span class="profile-arrow">&rsaquo;</span></button>
+      </aside>
+      <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+
+      <main class="main-content">
+        <header class="topbar topbar-projects">
+          <div class="project-heading"><button class="mobile-menu" id="mobileMenu" type="button" aria-label="Open navigation"><span></span><span></span><span></span></button><h1 class="page-title">Settings</h1></div>
+        </header>
+
+        <section class="settings-page" aria-labelledby="settingsHeading">
+          <div class="settings-layout">
+            <aside class="settings-tabs" aria-label="Settings sections">
+              <button class="settings-tab active" type="button" aria-current="page"><span class="settings-tab-icon">U</span><span>User Profile</span></button>
+            </aside>
+
+            <form class="profile-settings-card" id="profileSettingsForm">
+              <div class="settings-card-head">
+                <div><h2 id="settingsHeading">User Profile</h2><p>Keep your personal details current across the workspace.</p></div>
+                <span class="settings-status-pill" id="profileSyncStatus">Ready</span>
+              </div>
+
+              <div class="profile-editor">
+                <div class="profile-icon-picker" aria-label="Profile icon preview">
+                  <span class="profile-icon-preview" id="profileIconPreview">JD</span>
+                  <span class="profile-icon-copy"><strong>Profile Icon</strong><small>Fetched from Google profile link</small></span>
+                </div>
+
+                <div class="profile-fields">
+                  <label class="settings-field">Name<input id="profileNameInput" name="name" type="text" maxlength="80" required autocomplete="name" /></label>
+                  <label class="settings-field">Email<input id="profileEmailInput" name="email" type="email" readonly /></label>
+                  <p class="settings-helper">Profile icon is loaded from the photoURL saved on your user document. Name changes update the user document.</p>
+                </div>
+              </div>
+
+              <menu class="settings-actions">
+                <button class="settings-secondary" id="resetProfileButton" type="button">Reset</button>
+                <button class="btn-primary" id="saveProfileButton" type="submit">Save Changes</button>
+              </menu>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="./js/settings.js"></script>
+  </body>
+</html>

@@ -1,3 +1,5 @@
+import { watchFirebaseUserProfile } from "./auth-ui.js";
+
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");
 const sidebarScrim = byId("sidebarScrim");
@@ -7,6 +9,8 @@ const notificationButton = byId("notificationButton");
 const notificationDropdown = byId("notificationDropdown");
 const toast = byId("toast");
 let toastTimer;
+
+watchFirebaseUserProfile();
 
 function showToast(message) {
   clearTimeout(toastTimer);
@@ -83,8 +87,24 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
       window.location.href = "/projects";
       return;
     }
+    if (screen === "Tasks") {
+      window.location.href = "/tasks";
+      return;
+    }
+    if (screen === "Activity") {
+      window.location.href = "/activity";
+      return;
+    }
+    if (screen === "Members") {
+      window.location.href = "/members";
+      return;
+    }
+    if (screen === "Settings") {
+      window.location.href = "/settings";
+      return;
+    }
     if (screen === "Dashboard") {
-      window.location.href = "/";
+      window.location.href = "/dashboard";
       return;
     }
     document.querySelectorAll(".nav-item").forEach((item) => {
@@ -102,6 +122,18 @@ document.querySelectorAll("[data-tab]").forEach((tab) => {
   tab.addEventListener("click", () => {
     if (tab.dataset.tab === "Gantt") {
       window.location.href = "/gantt.html";
+      return;
+    }
+    if (tab.dataset.tab === "Tasks") {
+      window.location.href = "/tasks";
+      return;
+    }
+    if (tab.dataset.tab === "Activity") {
+      window.location.href = "/activity";
+      return;
+    }
+    if (tab.dataset.tab === "Members") {
+      window.location.href = "/members";
       return;
     }
     document.querySelectorAll("[data-tab]").forEach((item) => {

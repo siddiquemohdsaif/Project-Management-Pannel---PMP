@@ -160,7 +160,8 @@ button { color: inherit; }
   border-top: 1px solid rgb(213 230 255 / 17%);
 }
 .sidebar-profile:hover { background: rgb(255 255 255 / 5%); }
-.avatar, .top-avatar { display: grid; place-items: center; border-radius: 50%; color: #07316c; background: linear-gradient(145deg, #dceeff, #85bdff); font-weight: 800; }
+.avatar, .top-avatar { display: grid; place-items: center; overflow: hidden; border-radius: 50%; color: #07316c; background: linear-gradient(145deg, #dceeff, #85bdff); background-position: center; background-size: cover; font-weight: 800; }
+.avatar.has-profile-image, .top-avatar.has-profile-image { color: transparent; background-color: #dceeff; background-repeat: no-repeat; }
 .avatar-small { width: 52px; height: 52px; flex: 0 0 52px; border: 3px solid white; font-size: 13px; box-shadow: 0 8px 18px rgb(0 13 38 / 24%); }
 .profile-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
 .profile-copy strong { font-size: 16px; }
@@ -220,6 +221,56 @@ button { color: inherit; }
 .notification-dropdown small { color: var(--gray-500); }
 .notice-dot { width: 9px; height: 9px; flex: 0 0 9px; margin-top: 5px; border-radius: 50%; }
 .notice-dot.blue { background: var(--blue-600); }.notice-dot.orange { background: var(--orange-500); }.notice-dot.green { background: var(--green-500); }
+
+.auth-menu {
+  position: fixed;
+  z-index: 120;
+  width: 178px;
+  padding: 7px;
+  border: 1px solid #dce5f1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgb(5 28 58 / 22%);
+}
+.auth-menu[hidden] { display: none; }
+.auth-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 0;
+  border-radius: 8px;
+  color: #d8212f;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 750;
+  text-align: left;
+}
+.auth-menu-item:hover,
+.auth-menu-item:focus-visible {
+  background: #fff0f2;
+  outline: none;
+}
+.auth-logout-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: #fdebed;
+}
+.auth-logout-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 .dashboard { width: 100%; max-width: 1600px; margin: 0 auto; padding: 0 32px 28px; }
 .dashboard-toolbar { display: flex; min-height: 82px; align-items: end; justify-content: space-between; gap: 24px; border-bottom: 1px solid #e9eef4; }

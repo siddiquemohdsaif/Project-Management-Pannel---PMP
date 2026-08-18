@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Project Management Panel - browse and manage project tasks." />
+    <title>Tasks - Project Management Panel</title>
+    <script src="./js/auth-guard.js"></script>
+    <link rel="stylesheet" href="./css/styles.css" />
+    <link rel="stylesheet" href="./css/projects.css" />
+    <link rel="stylesheet" href="./css/tasks.css" />
+    <link rel="stylesheet" href="./css/create-task-dialog.css" />
+  </head>
+  <body class="projects-shell tasks-shell">
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-logo-frame"><img src="./assets/pmp-logo.png" alt="PMP - Project Management Panel" /></div>
+          <button class="sidebar-close" id="sidebarClose" type="button" aria-label="Close navigation">&times;</button>
+        </div>
+
+        <nav class="primary-nav">
+          <button class="nav-item" type="button" data-screen="Dashboard"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 10.8 12 3l9 7.8"/><path d="M5.5 9.5V21h13V9.5"/><path d="M9.5 21v-7h5v7"/></svg><span>Dashboard</span></button>
+          <button class="nav-item" type="button" data-screen="Projects"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18M10 12v2h4v-2"/></svg><span>Projects</span></button>
+          <button class="nav-item active" type="button" aria-current="page"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7.5 12 3 3 6.5-7"/></svg><span>Tasks</span></button>
+          <button class="nav-item" type="button" data-screen="Gantt Chart"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 4v16M4 7h6M8 12h12M4 17h10"/><circle cx="4" cy="7" r="1"/><circle cx="4" cy="17" r="1"/></svg><span>Gantt Chart</span></button>
+          <button class="nav-item" type="button" data-screen="Members"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M16 20v-1.5a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4V20"/><circle cx="9" cy="7" r="4"/><path d="M16 4.2a4 4 0 0 1 0 7.6M22 20v-1.5a4 4 0 0 0-3-3.7"/></svg><span>Members</span></button>
+          <button class="nav-item" type="button" data-screen="Reports"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 16v-3M12 16V8M17 16v-6"/></svg><span>Reports</span></button>
+          <button class="nav-item" type="button" data-screen="Activity"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h4l2.2-6 4.1 12 2.2-6H21"/></svg><span>Activity</span></button>
+          <button class="nav-item" type="button" data-screen="Settings"><svg class="nav-icon" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg><span>Settings</span></button>
+        </nav>
+
+        <button class="sidebar-profile" type="button" data-screen="Profiles" aria-label="Open profiles">
+          <span class="avatar avatar-small">JD</span><span class="profile-copy"><strong>John Doe</strong><small>john@example.com</small></span><span class="profile-arrow" aria-hidden="true">&rsaquo;</span>
+        </button>
+      </aside>
+
+      <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+
+      <main class="main-content">
+        <header class="topbar topbar-projects">
+          <div class="project-heading">
+            <button class="mobile-menu" id="mobileMenu" type="button" aria-label="Open navigation"><span></span><span></span><span></span></button>
+            <span class="project-identity-mark" aria-hidden="true">
+              <svg class="project-people" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3.5 20v-2a4.5 4.5 0 0 1 4.5-4.5h2a4.5 4.5 0 0 1 4.5 4.5v2M16 8a3 3 0 0 1 0 5.8M17 20v-1.5a4.5 4.5 0 0 0-2.3-3.9"/></svg>
+              <i></i>
+            </span>
+            <div class="project-menu-wrap">
+              <button class="project-selector" id="projectSelector" type="button" aria-expanded="false">
+                <span class="project-selector-copy"><small>Active project</small><span id="selectedProject">Acme Mobile App</span></span>
+                <span class="chevron" aria-hidden="true"></span>
+              </button>
+              <div class="dropdown project-dropdown" id="projectDropdown" hidden>
+                <span class="dropdown-label">Switch project</span>
+                <button type="button" data-project="Acme Mobile App"><strong>Acme Mobile App</strong><small>62% complete</small></button>
+                <button type="button" data-project="CloudSync API"><strong>CloudSync API</strong><small>41% complete</small></button>
+                <button type="button" data-project="Commerce Redesign"><strong>Commerce Redesign</strong><small>78% complete</small></button>
+              </div>
+            </div>
+          </div>
+          <button class="btn-primary" id="newTaskBtn" type="button">+ New Task</button>
+        </header>
+
+        <section class="projects-page tasks-page" aria-labelledby="tasksHeading">
+          <h2 class="sr-only" id="tasksHeading">Tasks list</h2>
+          <div class="tasks-toolbar">
+            <label class="search-field">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input id="searchInput" type="search" placeholder="Search tasks..." autocomplete="off" />
+            </label>
+            <label class="status-filter"><select id="statusFilter" aria-label="Filter by status"><option value="all">All Status</option><option>Completed</option><option>In Progress</option><option>Partially Completed</option><option>Not Started</option><option>Blocked</option></select></label>
+            <label class="status-filter"><select id="assigneeFilter" aria-label="Filter by assignee"><option value="all">All Assignees</option><option>John Doe</option><option>Sarah Johnson</option><option>Priya Rao</option><option>Arun Roy</option><option>Vikram Kumar</option></select></label>
+            <label class="status-filter"><select id="labelFilter" aria-label="Filter by label"><option value="all">All Labels</option><option>Planning</option><option>Design</option><option>Roadmap</option></select></label>
+            <button class="filter-button" id="clearFilters" type="button" aria-label="Clear filters"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v5l-4 2v-7Z"/><path d="M8 4v2M16 4v2"/></svg></button>
+          </div>
+
+          <div class="projects-card">
+            <div class="table-wrap">
+              <table class="projects-table tasks-table" id="tasksTable">
+                <thead><tr><th><button class="subtask-toggle all-subtasks-toggle" id="toggleAllSubtasks" type="button" aria-expanded="false" aria-label="Show all subtasks"></button></th><th>Sr No</th><th>Task Name</th><th>Status</th><th>Assignee</th><th>Due Date</th><th>Priority</th><th aria-label="Edit task"></th></tr></thead>
+                <tbody id="tasksBody">
+                  <tr class="phase-row" data-name="Project Planning" data-task-id="planning" data-due="2024-05-05" data-status="Completed" data-assignee="John Doe" data-label="Planning"><td><button class="subtask-toggle" type="button" data-toggle-subtasks="planning" aria-expanded="false" aria-label="Show Project Planning subtasks"></button></td><td class="task-index">1</td><td class="task-title">Project Planning</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 5, 2024</td><td><span class="priority high">High</span></td></tr>
+                  <tr class="subtask-row" data-parent="planning" data-name="Define Scope" data-due="2024-05-01" data-status="Completed" data-assignee="John Doe" data-label="Planning" hidden><td></td><td class="task-index">1.1</td><td class="task-title subtask-name">Define Scope</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 1, 2024</td><td><span class="priority high">High</span></td></tr>
+                  <tr class="subtask-row" data-parent="planning" data-name="Requirements" data-due="2024-05-15" data-status="In Progress" data-assignee="John Doe" data-label="Planning" hidden><td></td><td class="task-index">1.2</td><td class="task-title subtask-name">Requirements</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 15, 2024</td><td><span class="priority high">High</span></td></tr>
+                  <tr class="subtask-row" data-parent="planning" data-name="Create Roadmap" data-due="2024-05-20" data-status="Partially Completed" data-assignee="Sarah Johnson" data-label="Roadmap" hidden><td></td><td class="task-index">1.3</td><td class="task-title subtask-name">Create Roadmap</td><td><button class="status-pill partial status-button" type="button" data-status-button>Partially Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 20, 2024</td><td><span class="priority medium">Medium</span></td></tr>
+                  <tr class="phase-row" data-name="UI/UX Design" data-task-id="design" data-due="2024-05-30" data-status="In Progress" data-assignee="Sarah Johnson" data-label="Design"><td><button class="subtask-toggle" type="button" data-toggle-subtasks="design" aria-expanded="false" aria-label="Show UI/UX Design subtasks"></button></td><td class="task-index">2</td><td class="task-title">UI/UX Design</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 30, 2024</td><td><span class="priority high">High</span></td></tr>
+                  <tr class="subtask-row" data-parent="design" data-name="Wireframes" data-due="2024-05-10" data-status="Completed" data-assignee="John Doe" data-label="Design" hidden><td></td><td class="task-index">2.1</td><td class="task-title subtask-name">Wireframes</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 10, 2024</td><td><span class="priority medium">Medium</span></td></tr>
+                  <tr class="subtask-row" data-parent="design" data-name="Mockups" data-due="2024-05-25" data-status="In Progress" data-assignee="John Doe" data-label="Design" hidden><td></td><td class="task-index">2.2</td><td class="task-title subtask-name">Mockups</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 25, 2024</td><td><span class="priority medium">Medium</span></td></tr>
+                  <tr class="subtask-row" data-parent="design" data-name="Design System" data-due="2024-06-05" data-status="Not Started" data-assignee="Sarah Johnson" data-label="Design" hidden><td></td><td class="task-index">2.3</td><td class="task-title subtask-name">Design System</td><td><button class="status-pill not-started status-button" type="button" data-status-button>Not Started</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">Jun 5, 2024</td><td><span class="priority low">Low</span></td></tr>
+                </tbody>
+              </table>
+              <div class="empty-state" id="emptyState" hidden>No tasks match your filters.</div>
+            </div>
+            <footer class="projects-footer">
+              <span id="footerCount">Showing 1 to 8 of 128 tasks</span>
+              <div class="pagination" role="navigation" aria-label="Pagination"><button type="button" aria-label="Previous page">&lsaquo;</button><button type="button" class="active" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button" disabled>...</button><button type="button">16</button><button type="button" aria-label="Next page">&rsaquo;</button></div>
+            </footer>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="newTaskDialog" class="task-dialog task-create-dialog">
+      <form method="dialog" class="dialog-card task-form-card" id="newTaskForm">
+        <button class="task-dialog-close" id="dialogClose" type="button" aria-label="Close create task dialog"></button>
+        <div class="task-form-hero">
+          <img class="task-form-icon create-task-icon" src="./assets/photos/create_task_icon.png" alt="" />
+          <div class="task-form-heading">
+            <h3>Create New Task</h3>
+            <p>Plan work, assign owners, set dependencies, and add subtasks in one place.</p>
+          </div>
+        </div>
+
+        <section class="task-form-section">
+          <div class="section-title"><div class="section-heading"><span class="section-number">1.</span><span>Task Details</span></div><small>Main task</small></div>
+          <div class="task-form-grid">
+            <label class="field-wide">Task Name<input name="name" required placeholder="e.g., API contract review" maxlength="80" /></label>
+            <label>Start Date<input name="start" type="date" /></label>
+            <label>End Date<input name="end" type="date" /></label>
+            <div class="task-field">
+              <span>Priority</span>
+              <details class="task-multi-select priority-select">
+                <summary><span class="priority-summary" id="mainPrioritySummary"><img src="./assets/photos/med.png" alt="" />Medium</span></summary>
+                <div class="multi-select-panel priority-select-panel">
+                  <label class="multi-option priority-option"><input data-priority-input type="radio" name="priority" value="Low" /><img class="priority-option-icon" src="./assets/photos/low.png" alt="" /><span>Low</span><i class="priority-check" aria-hidden="true"></i></label>
+                  <label class="multi-option priority-option"><input data-priority-input type="radio" name="priority" value="Medium" checked /><img class="priority-option-icon" src="./assets/photos/med.png" alt="" /><span>Medium</span><i class="priority-check" aria-hidden="true"></i></label>
+                  <label class="multi-option priority-option"><input data-priority-input type="radio" name="priority" value="High" /><img class="priority-option-icon" src="./assets/photos/high.png" alt="" /><span>High</span><i class="priority-check" aria-hidden="true"></i></label>
+                </div>
+              </details>
+            </div>
+            <div class="task-field">
+              <span>Assignee</span>
+              <details class="task-multi-select assignee-select" id="mainAssigneeSelect">
+                <summary><span id="mainAssigneeSummary">Choose members</span></summary>
+                <div class="multi-select-panel" id="mainAssigneeOptions"></div>
+              </details>
+            </div>
+            <label class="field-wide">Description<textarea name="description" rows="3" placeholder="Add a short task brief, acceptance notes, or handoff details."></textarea></label>
+          </div>
+        </section>
+
+        <section class="task-form-section dependency-section">
+          <div class="section-title"><div class="section-heading"><span class="section-number">2.</span><span>Dependency Task</span></div><small>Optional</small></div>
+          <details class="task-multi-select dependency-select" id="dependencySelect">
+            <summary><span id="dependencySummary">Select previous main tasks</span></summary>
+            <div class="multi-select-panel" id="dependencyOptions"></div>
+          </details>
+        </section>
+
+        <section class="task-form-section subtask-section">
+          <div class="section-title">
+            <div class="section-heading"><span class="section-number">3.</span><span>Subtasks</span></div>
+            <button class="add-subtask-button" id="addSubtaskBtn" type="button">+ Add Subtask</button>
+          </div>
+          <div class="subtask-builder-list" id="subtaskBuilderList"></div>
+        </section>
+
+        <menu class="task-form-actions">
+          <button type="button" value="cancel" id="dialogCancel">Cancel</button>
+          <button type="submit" value="create" class="btn-primary">Create Task</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="editTaskDialog" class="task-dialog task-create-dialog task-edit-dialog">
+      <form method="dialog" class="dialog-card task-form-card" id="editTaskForm">
+        <button class="task-dialog-close" id="editDialogClose" type="button" aria-label="Close edit task dialog"></button>
+        <div class="task-form-hero">
+          <img class="task-form-icon edit-task-icon" src="./assets/photos/edit_task_icon.png" alt="" />
+          <div class="task-form-heading">
+            <h3>Edit Task</h3>
+            <p>Update task details, owners, priority, dependencies, and subtasks.</p>
+          </div>
+        </div>
+
+        <section class="task-form-section">
+          <div class="section-title"><div class="section-heading"><span class="section-number">1.</span><span id="editDetailsTitle">Task Details</span></div><small id="editTaskModeBadge">Main task</small></div>
+          <div class="task-form-grid">
+            <label class="field-wide">Task Name<input name="edit-name" required maxlength="80" /></label>
+            <label>Start Date<input name="edit-start" type="date" /></label>
+            <label>End Date<input name="edit-end" type="date" /></label>
+            <div class="task-field">
+              <span>Priority</span>
+              <details class="task-multi-select priority-select">
+                <summary><span class="priority-summary" id="editPrioritySummary"><img src="./assets/photos/med.png" alt="" />Medium</span></summary>
+                <div class="multi-select-panel priority-select-panel" id="editPriorityOptions"></div>
+              </details>
+            </div>
+            <div class="task-field">
+              <span>Assignee</span>
+              <details class="task-multi-select assignee-select">
+                <summary><span id="editAssigneeSummary">Choose members</span></summary>
+                <div class="multi-select-panel" id="editAssigneeOptions"></div>
+              </details>
+            </div>
+            <label class="field-wide" id="editDescriptionField">Description<textarea name="edit-description" rows="3"></textarea></label>
+          </div>
+        </section>
+
+        <section class="task-form-section dependency-section" id="editDependencySection">
+          <div class="section-title"><div class="section-heading"><span class="section-number">2.</span><span>Dependency Task</span></div><small>Optional</small></div>
+          <details class="task-multi-select dependency-select">
+            <summary><span id="editDependencySummary">Select previous main tasks</span></summary>
+            <div class="multi-select-panel" id="editDependencyOptions"></div>
+          </details>
+        </section>
+
+        <section class="task-form-section subtask-section" id="editSubtaskSection">
+          <div class="section-title">
+            <div class="section-heading"><span class="section-number">3.</span><span>Subtasks</span></div>
+            <button class="add-subtask-button" id="editAddSubtaskBtn" type="button">+ Add Subtask</button>
+          </div>
+          <div class="subtask-builder-list" id="editSubtaskEditorList"></div>
+        </section>
+
+        <menu class="task-form-actions edit-task-actions">
+          <button class="delete-main-task-button" id="deleteMainTaskBtn" type="button">Delete Task</button>
+          <span class="task-action-spacer"></span>
+          <button type="button" value="cancel" id="editDialogCancel">Cancel</button>
+          <button type="submit" value="save" class="btn-primary">Save Changes</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="confirmDeleteDialog" class="task-dialog">
+      <form method="dialog" class="dialog-card completion-dialog-card confirm-delete-card">
+        <h3 id="confirmDeleteTitle">Delete Task?</h3>
+        <p id="confirmDeleteMessage">This action cannot be undone.</p>
+        <menu>
+          <button type="button" value="cancel" id="confirmDeleteCancel">Cancel</button>
+          <button type="button" value="confirm" class="btn-primary danger-button" id="confirmDeleteButton">Delete</button>
+        </menu>
+      </form>
+    </dialog>
+    <dialog id="completeSubtasksDialog" class="task-dialog">
+      <form method="dialog" class="dialog-card completion-dialog-card">
+        <h3>Complete Main Task?</h3>
+        <p id="completeSubtasksMessage">Some subtasks are still not complete. To complete this main task, mark all remaining subtasks as Completed too.</p>
+        <ul id="incompleteSubtasksList" class="incomplete-subtasks-list"></ul>
+        <menu>
+          <button type="button" value="cancel" id="completeSubtasksCancel">Cancel</button>
+          <button type="button" value="confirm" class="btn-primary" id="completeSubtasksConfirm">Mark All Complete</button>
+        </menu>
+      </form>
+    </dialog>
+    <div class="status-menu" id="statusMenu" role="menu" hidden></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    <script type="module" src="./js/tasks.js"></script>
+  </body>
+</html>
