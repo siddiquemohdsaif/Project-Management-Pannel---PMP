@@ -260,8 +260,25 @@
 }
 .task-dialog { padding: 0; border: 0; background: transparent; max-width: 510px; width: calc(100vw - 32px); }
 .task-dialog::backdrop { background: rgb(1 15 32 / 34%); backdrop-filter: blur(1.5px); }
+.completion-dialog-card {
+  display: grid;
+  gap: 0;
+  padding: 26px 28px 24px;
+  border: 1px solid #e1e8f2;
+  border-radius: 16px;
+  color: #0a1932;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 24px 60px rgb(7 27 58 / 22%);
+}
+.completion-dialog-card h3 {
+  margin: 0 0 14px;
+  color: #0a1932;
+  font-size: 22px;
+  font-weight: 760;
+  line-height: 1.2;
+}
 .completion-dialog-card p {
-  margin: -8px 0 14px;
+  margin: 0 0 18px;
   color: #4d5b70;
   font-size: 13px;
   line-height: 1.55;
@@ -294,9 +311,12 @@
   font-weight: 750;
 }
 .completion-dialog-card menu {
+  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
-  margin-top: 22px;
+  margin: 14px 0 0;
+  padding: 0;
 }
 .completion-dialog-card menu button {
   min-height: 40px;

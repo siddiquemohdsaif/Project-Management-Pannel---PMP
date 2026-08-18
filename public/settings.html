@@ -46,15 +46,16 @@
               </div>
 
               <div class="profile-editor">
-                <div class="profile-icon-picker" aria-label="Profile icon preview">
+                <label class="profile-icon-picker" aria-label="Change profile icon">
+                  <input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" />
                   <span class="profile-icon-preview" id="profileIconPreview">JD</span>
-                  <span class="profile-icon-copy"><strong>Profile Icon</strong><small>Fetched from Google profile link</small></span>
-                </div>
+                  <span class="profile-icon-copy"><strong>Profile Icon</strong><small id="profilePhotoHint">Select image to upload</small></span>
+                </label>
 
                 <div class="profile-fields">
                   <label class="settings-field">Name<input id="profileNameInput" name="name" type="text" maxlength="80" required autocomplete="name" /></label>
                   <label class="settings-field">Email<input id="profileEmailInput" name="email" type="email" readonly /></label>
-                  <p class="settings-helper">Profile icon is loaded from the photoURL saved on your user document. Name changes update the user document.</p>
+                  <p class="settings-helper">Profile icon uploads to the server and updates photoURL on your user document.</p>
                 </div>
               </div>
 
@@ -69,6 +70,6 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-    <script type="module" src="./js/settings.js"></script>
+    <script type="module" src="./js/settings.js?v=profile-upload-20260818"></script>
   </body>
 </html>

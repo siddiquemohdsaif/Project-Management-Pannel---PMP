@@ -1,4 +1,5 @@
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 
@@ -8,6 +9,8 @@ const types = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".png": "image/png",
@@ -132,6 +135,46 @@ function userDocIdFromEmail(email) {
     .replace(/[\s/`]/g, "_");
 }
 
+function bearerToken(request) {
+  const header = request.headers.authorization || "";
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match?.[1] || "";
+}
+
+function safeFileName(value) {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_");
+}
+
+function imageExtension(mimeType) {
+  return {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp"
+  }[mimeType] || "";
+}
+
+function parseProfilePhotoPayload(profilePhotoBase64, mimeType) {
+  let cleanBase64 = String(profilePhotoBase64 || "").trim();
+  let cleanMimeType = String(mimeType || "").trim().toLowerCase();
+  const dataUrlMatch = cleanBase64.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i);
+  if (dataUrlMatch) {
+    cleanMimeType = dataUrlMatch[1].toLowerCase();
+    cleanBase64 = dataUrlMatch[2];
+  }
+
+  const extension = imageExtension(cleanMimeType);
+  if (!extension) throw new Error("Profile photo must be a JPG, PNG, or WebP image.");
+  if (!cleanBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanBase64)) {
+    throw new Error("Profile photo data is not valid.");
+  }
+
+  const imageBuffer = Buffer.from(cleanBase64, "base64");
+  if (!imageBuffer.length) throw new Error("Profile photo is empty.");
+  if (imageBuffer.length > 2 * 1024 * 1024) throw new Error("Profile photo must be 2 MB or smaller.");
+  return { imageBuffer, extension };
+}
+
 async function verifyFirebaseIdToken(idToken) {
   const apiKey = readFirebaseApiKey();
   if (!apiKey) throw new Error("Missing Firebase apiKey. Add it in public/js/firebase-config.js or FIREBASE_API_KEY.");
@@ -220,6 +263,40 @@ async function handleUserProfile(request, response) {
   }
 }
 
+async function handleUserPhoto(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const idToken = bearerToken(request);
+    if (!idToken) throw new Error("Missing Firebase authorization token.");
+
+    const firebaseUser = await verifyFirebaseIdToken(idToken);
+    const cleanEmail = firebaseUser.email.trim().toLowerCase();
+    const userDocId = userDocIdFromEmail(cleanEmail);
+    const existingUser = await readCloudsw3User(userDocId);
+    if (!existingUser) throw new Error("No user found.");
+
+    const { profilePhotoBase64, mimeType } = await readRequestJson(request);
+    const { imageBuffer, extension } = parseProfilePhotoPayload(profilePhotoBase64, mimeType);
+    const uploadsDir = join(publicRoot, "profile_photos");
+    await mkdir(uploadsDir, { recursive: true });
+
+    const fileName = `${safeFileName(userDocId)}.${extension}`;
+    await writeFile(join(uploadsDir, fileName), imageBuffer);
+
+    const photoURL = `/profile_photos/${fileName}?v=${Date.now()}`;
+    const user = { ...existingUser, email: existingUser.email || cleanEmail, photoURL };
+    await updateCloudsw3User(userDocId, user);
+
+    sendJson(response, 200, { user, photoURL });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Profile photo update failed." });
+  }
+}
+
 function publicMemberDocument(user) {
   return {
     photoURL: user.photoURL || user.photoUrl || user.avatarUrl || "",
@@ -291,6 +368,11 @@ createServer(async (request, response) => {
 
   if (requestPath === "/api/user/profile") {
     await handleUserProfile(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/user/photo") {
+    await handleUserPhoto(request, response);
     return;
   }
 
