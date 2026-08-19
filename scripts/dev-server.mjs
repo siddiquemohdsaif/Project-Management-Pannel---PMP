@@ -590,7 +590,7 @@ async function handleProjectsList(request, response) {
   if (request.method === "GET") {
     try {
       const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-      const includeProgress = requestUrl.searchParams.get("progress") !== "false";
+      const includeProgress = requestUrl.searchParams.get("progress") === "true";
       const projects = await readCloudsw3Projects();
       const publicProjects = includeProgress
         ? await Promise.all((Array.isArray(projects) ? projects : []).map(publicProjectDocumentWithProgress))
@@ -700,12 +700,6 @@ async function refreshProjectTaskCount(projectDocId, delta = 0) {
   });
 }
 
-function refreshProjectTaskCountSoon(projectDocId) {
-  refreshProjectTaskCount(projectDocId).catch((error) => {
-    console.warn(`Project task stats refresh failed for ${projectDocId}:`, error.message);
-  });
-}
-
 async function handleProjectTasks(request, response, projectDocId) {
   if (request.method === "GET") {
     try {
@@ -758,7 +752,7 @@ async function handleProjectTaskDetail(request, response, projectDocId, taskDocI
         updated_at: formatIndiaDateTime()
       };
       await updateCloudsw3Task(projectDocId, taskDocId, task);
-      refreshProjectTaskCountSoon(projectDocId);
+      await refreshProjectTaskCount(projectDocId);
       sendJson(response, 200, { task: publicTaskDocument(task) });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Task could not be updated." });

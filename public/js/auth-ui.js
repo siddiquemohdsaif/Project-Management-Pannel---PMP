@@ -1,3 +1,5 @@
+import { warmDataCache } from "./data-cache.js?v=pmp-20260819-4";
+
 const USER_STORAGE_KEY = "pmpUser";
 const LOGIN_PATH = "/";
 let authMenu;
@@ -93,6 +95,9 @@ export function watchFirebaseUserProfile() {
   if (!requireSignedInUser()) return;
   hydrateStoredUserProfile();
   setupAuthMenu();
+  const dataPages = new Set(["/projects", "/tasks", "/members"]);
+  const path = window.location.pathname.replace(/\/+$/, "") || "/";
+  if (!dataPages.has(path)) warmDataCache();
 }
 
 function getUserName() {
@@ -216,6 +221,6 @@ function logoutCurrentUser() {
 }
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/image-cache-sw.js").catch(() => {});
+    navigator.serviceWorker.register("/image-cache-sw.js?v=pmp-20260819-4", { updateViaCache: "none" }).catch(() => {});
   }, { once: true });
 }

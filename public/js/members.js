@@ -1,4 +1,5 @@
-import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js";
+import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js?v=pmp-20260819-4";
+import { dataCacheKeys, readDataCache, writeDataCache } from "./data-cache.js?v=pmp-20260819-4";
 
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");
@@ -53,16 +54,26 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
 searchInput.addEventListener("input", applyFilters);
 
 async function loadMembers() {
-  setLoadingState();
+  const cachedMembers = readDataCache(dataCacheKeys.members);
+  if (Array.isArray(cachedMembers)) {
+    members = cachedMembers;
+    renderMembers();
+  } else {
+    setLoadingState();
+  }
+
   try {
-    const response = await fetch("/api/members");
+    const response = await freshFetch("/api/members");
     const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.error || "Members could not be loaded.");
     members = Array.isArray(result.members) ? result.members : [];
+    writeDataCache(dataCacheKeys.members, members);
   } catch (error) {
-    const storedUser = getStoredUser();
-    members = storedUser ? [{ ...storedUser, status: "Active", role: "Member" }] : [];
-    showToast("Members collection API needs approval. Showing signed-in user for now.");
+    if (!Array.isArray(cachedMembers)) {
+      const storedUser = getStoredUser();
+      members = storedUser ? [{ ...storedUser, status: "Active", role: "Member" }] : [];
+    }
+    showToast("Latest members could not be loaded. Showing saved data.");
   }
   renderMembers();
 }
@@ -174,4 +185,10 @@ async function readApiResponse(response) {
   } catch {
     return { error: text };
   }
+}
+
+function freshFetch(url, options = {}) {
+  const cacheBust = `_=${Date.now()}`;
+  const separator = url.includes("?") ? "&" : "?";
+  return fetch(`${url}${separator}${cacheBust}`, { cache: "no-store", ...options });
 }

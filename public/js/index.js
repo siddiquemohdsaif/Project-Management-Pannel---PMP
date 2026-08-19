@@ -1,5 +1,5 @@
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
-import { getStoredUser, storeSignedInUser } from "./auth-ui.js";
+import { getStoredUser, storeSignedInUser } from "./auth-ui.js?v=pmp-20260819-4";
 
 const googleLoginButton = document.getElementById("googleLoginButton");
 const loginStatus = document.getElementById("loginStatus");

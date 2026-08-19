@@ -1,4 +1,4 @@
-import { watchFirebaseUserProfile } from "./auth-ui.js";
+import { watchFirebaseUserProfile } from "./auth-ui.js?v=pmp-20260819-4";
 
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");

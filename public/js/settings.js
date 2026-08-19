@@ -1,5 +1,5 @@
 import { firebaseConfig, isFirebaseConfigured } from "./firebase-config.js";
-import { getStoredUser, updateStoredUser, watchFirebaseUserProfile } from "./auth-ui.js";
+import { getStoredUser, updateStoredUser, watchFirebaseUserProfile } from "./auth-ui.js?v=pmp-20260819-4";
 
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");

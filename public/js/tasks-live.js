@@ -1,4 +1,5 @@
-import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js";
+import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js?v=pmp-20260819-4";
+import { dataCacheKeys, readDataCache, writeDataCache } from "./data-cache.js?v=pmp-20260819-4";
 
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");
@@ -187,13 +188,18 @@ document.addEventListener("click", (event) => {
 window.addEventListener("resize", closeStatusMenu);
 
 async function loadPage() {
-  tasksBody.innerHTML = "";
-  footerCount.textContent = "Loading tasks";
+  const hasCachedPage = hydrateCachedPage();
+  if (!hasCachedPage) {
+    tasksBody.innerHTML = "";
+    footerCount.textContent = "Loading tasks";
+  }
+
   try {
     const projectsResponse = await freshFetch("/api/projects?progress=false");
     const projectsResult = await readJson(projectsResponse);
     if (!projectsResponse.ok) throw new Error(projectsResult.error || "Projects could not be loaded.");
     projects = projectsResult.projects || [];
+    writeDataCache(dataCacheKeys.projects, projects);
     renderProjectDropdown();
     const project = projects.find((item) => item.id === activeProjectId) || projects.find((item) => item.project_name === activeProjectName) || projects[0];
     if (!project) return renderTasks();
@@ -210,14 +216,64 @@ async function loadPage() {
     const tasksResult = await readJson(tasksResponse);
     if (!tasksResponse.ok) throw new Error(tasksResult.error || "Tasks could not be loaded.");
     members = membersForProject(projectMembersResult, project);
+    writeDataCache(dataCacheKeys.members, mergeMembers(readDataCache(dataCacheKeys.members, []), projectMembersResult));
     renderAssigneeFilter();
     tasks = sortTasks(tasksResult.tasks || []);
+    writeDataCache(dataCacheKeys.tasks(activeProjectId), tasks);
   } catch (error) {
-    members = fallbackMembers();
-    tasks = [];
+    if (!hasCachedPage) {
+      members = fallbackMembers();
+      tasks = [];
+    }
     showToast(error.message || "Tasks could not be loaded.");
   }
   renderTasks();
+}
+
+function hydrateCachedPage() {
+  const cachedProjects = readDataCache(dataCacheKeys.projects);
+  if (!Array.isArray(cachedProjects)) return false;
+
+  projects = cachedProjects;
+  renderProjectDropdown();
+  const project = projects.find((item) => item.id === activeProjectId)
+    || projects.find((item) => item.project_name === activeProjectName)
+    || projects[0];
+  if (!project) {
+    renderTasks();
+    return true;
+  }
+
+  activeProjectId = project.id;
+  activeProjectName = project.project_name;
+  selectedProject.textContent = activeProjectName;
+  const cachedMembers = readDataCache(dataCacheKeys.members, []);
+  members = membersForProject(cachedMembers, project);
+  renderAssigneeFilter();
+  const cachedTasks = readDataCache(dataCacheKeys.tasks(activeProjectId));
+  if (Array.isArray(cachedTasks)) {
+    tasks = sortTasks(cachedTasks);
+    renderTasks();
+  } else {
+    tasksBody.innerHTML = "";
+    footerCount.textContent = "Loading tasks";
+  }
+  return true;
+}
+
+function cacheCurrentTasks() {
+  if (!activeProjectId) return;
+  writeDataCache(dataCacheKeys.tasks(activeProjectId), tasks);
+
+  const cachedProjects = readDataCache(dataCacheKeys.projects, []);
+  if (!Array.isArray(cachedProjects)) return;
+  const completedCount = tasks.filter((task) => task.status === "Completed").length;
+  const progressPercent = tasks.length ? Math.round((completedCount / tasks.length) * 100) : 0;
+  writeDataCache(dataCacheKeys.projects, cachedProjects.map((project) => project.id === activeProjectId ? {
+    ...project,
+    task_count: tasks.length,
+    progress_percent: progressPercent
+  } : project));
 }
 
 function renderProjectDropdown() {
@@ -389,6 +445,7 @@ async function updateStatus(button, status) {
     if (status === "Completed") (task.sub_tasks || []).forEach((subtask) => { subtask.status = "Completed"; });
   }
   closeStatusMenu();
+  cacheCurrentTasks();
   renderTasks();
   await saveTask(task, `${row.dataset.name}: ${row.dataset.status} -> ${status}`);
 }
@@ -423,6 +480,7 @@ async function createTask(event) {
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || "Task could not be created.");
     tasks.push(result.task);
+    cacheCurrentTasks();
     closeCreateDialog();
     renderTasks();
     showToast(`Task "${result.task.main_task_name}" created.`);
@@ -462,6 +520,7 @@ async function saveTask(task, message) {
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || "Task could not be updated.");
     tasks = tasks.map((item) => item.id === result.task.id ? result.task : item);
+    cacheCurrentTasks();
     closeStatusMenu();
     renderTasks();
     showToast(message || "Task updated.");
@@ -560,6 +619,7 @@ async function deleteCurrentEditTarget() {
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || "Task could not be deleted.");
     tasks = tasks.filter((task) => task.id !== editState.task.id);
+    cacheCurrentTasks();
     expandedParents.delete(editState.task.id);
     closeEditDialog();
     renderTasks();

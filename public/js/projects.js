@@ -1,4 +1,5 @@
-import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js";
+import { getStoredUser, watchFirebaseUserProfile } from "./auth-ui.js?v=pmp-20260819-4";
+import { dataCacheKeys, readDataCache, warmProjectTasks, writeDataCache } from "./data-cache.js?v=pmp-20260819-4";
 
 const byId = (id) => document.getElementById(id);
 const sidebar = byId("sidebar");
@@ -86,6 +87,11 @@ projectsBody.addEventListener("click", async (e) => {
   window.location.href = `/tasks?project=${encodeURIComponent(row.dataset.name)}`;
 });
 
+projectsBody.addEventListener("pointerover", (event) => {
+  const row = event.target.closest("tr[data-id]");
+  if (row?.dataset.id) warmProjectTasks(row.dataset.id);
+});
+
 const dialog = byId("newProjectDialog");
 const newProjectBtn = byId("newProjectBtn");
 const newProjectForm = byId("newProjectForm");
@@ -153,6 +159,7 @@ newProjectForm.addEventListener("submit", async (e) => {
     if (!response.ok) throw new Error(result.error || "Project could not be saved.");
 
     upsertProject(result.project);
+    writeDataCache(dataCacheKeys.projects, projects);
     renderProjects();
     closeProjectDialog();
     showToast(`Project "${name}" ${editingProjectRow ? "updated" : "created"}.`);
@@ -164,11 +171,18 @@ newProjectForm.addEventListener("submit", async (e) => {
 });
 
 async function loadPageData() {
-  setLoadingState();
+  const cachedMembers = readDataCache(dataCacheKeys.members);
+  const cachedProjects = readDataCache(dataCacheKeys.projects);
+  const hasCachedData = Array.isArray(cachedProjects);
+  if (Array.isArray(cachedMembers)) projectMembers = normalizeMembers(cachedMembers);
+  if (Array.isArray(cachedProjects)) projects = cachedProjects;
+  if (hasCachedData) renderProjects();
+  else setLoadingState();
+
   try {
     const [membersResponse, projectsResponse] = await Promise.all([
       freshFetch("/api/members"),
-      freshFetch("/api/projects")
+      freshFetch("/api/projects?progress=false")
     ]);
     const membersResult = await readApiResponse(membersResponse);
     const projectsResult = await readApiResponse(projectsResponse);
@@ -176,9 +190,13 @@ async function loadPageData() {
     if (!projectsResponse.ok) throw new Error(projectsResult.error || "Projects could not be loaded.");
     projectMembers = normalizeMembers(membersResult.members);
     projects = Array.isArray(projectsResult.projects) ? projectsResult.projects : [];
+    writeDataCache(dataCacheKeys.members, projectMembers);
+    writeDataCache(dataCacheKeys.projects, projects);
+    const projectToWarm = projects.find((project) => project.id === localStorage.getItem("activeProjectId")) || projects[0];
+    if (projectToWarm?.id) warmProjectTasks(projectToWarm.id);
   } catch (error) {
-    projectMembers = fallbackMembers();
-    projects = [];
+    if (!projectMembers.length) projectMembers = fallbackMembers();
+    if (!Array.isArray(cachedProjects)) projects = [];
     showToast(error.message || "Project data could not be loaded.");
   }
   renderProjects();
@@ -238,6 +256,7 @@ async function updateProjectStatus(button, statusLabel) {
     const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.error || "Project status could not be updated.");
     upsertProject(result.project);
+    writeDataCache(dataCacheKeys.projects, projects);
     closeStatusMenu();
     renderProjects();
     showToast(`${row.dataset.name}: ${previous} -> ${statusLabels[normalizeStatus(status)]}.`);
@@ -353,6 +372,7 @@ async function refreshProjectMembers(row = null) {
     const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.error || "Members could not be loaded.");
     projectMembers = normalizeMembers(result.members);
+    writeDataCache(dataCacheKeys.members, projectMembers);
   } catch {
     projectMembers = normalizeMembers(projectMembers.length ? projectMembers : fallbackMembers());
   }
