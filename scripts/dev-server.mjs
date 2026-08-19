@@ -81,6 +81,16 @@ function sendJson(response, status, body) {
   response.end(JSON.stringify(body));
 }
 
+function staticCacheControl(requestPath, extension) {
+  if (requestPath.startsWith("/project_icons/") || requestPath.startsWith("/profile_photos/")) {
+    return "public, max-age=31536000, immutable";
+  }
+  if ([".png", ".jpg", ".jpeg", ".webp", ".ico"].includes(extension)) {
+    return "public, max-age=604800, stale-while-revalidate=86400";
+  }
+  return "no-cache";
+}
+
 function parseResponseBody(text) {
   if (!text) return null;
   try {
@@ -175,6 +185,27 @@ function parseProfilePhotoPayload(profilePhotoBase64, mimeType) {
   return { imageBuffer, extension };
 }
 
+function parseImagePayload(imageBase64, mimeType, label = "Image") {
+  let cleanBase64 = String(imageBase64 || "").trim();
+  let cleanMimeType = String(mimeType || "").trim().toLowerCase();
+  const dataUrlMatch = cleanBase64.match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i);
+  if (dataUrlMatch) {
+    cleanMimeType = dataUrlMatch[1].toLowerCase();
+    cleanBase64 = dataUrlMatch[2];
+  }
+
+  const extension = imageExtension(cleanMimeType);
+  if (!extension) throw new Error(`${label} must be a JPG, PNG, or WebP image.`);
+  if (!cleanBase64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanBase64)) {
+    throw new Error(`${label} data is not valid.`);
+  }
+
+  const imageBuffer = Buffer.from(cleanBase64, "base64");
+  if (!imageBuffer.length) throw new Error(`${label} is empty.`);
+  if (imageBuffer.length > 2 * 1024 * 1024) throw new Error(`${label} must be 2 MB or smaller.`);
+  return { imageBuffer, extension };
+}
+
 async function verifyFirebaseIdToken(idToken) {
   const apiKey = readFirebaseApiKey();
   if (!apiKey) throw new Error("Missing Firebase apiKey. Add it in public/js/firebase-config.js or FIREBASE_API_KEY.");
@@ -220,8 +251,19 @@ async function readCloudsw3User(userDocId) {
   return cloudsw3Request(`rd?parentPath=/&collName=Users&docName=${encodeURIComponent(userDocId)}`);
 }
 
+async function readCloudsw3Collection(collName, parentPath = "/", pageSize = 500) {
+  const data = await cloudsw3Request(`rcdsp?collName=${encodeURIComponent(collName)}&parentPath=${encodeURIComponent(parentPath)}`, {
+    method: "POST",
+    body: JSON.stringify({ lastDocId: "0", pageSize, projection: {} })
+  });
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.docs)) return data.docs;
+  if (Array.isArray(data?.data)) return data.data;
+  return [];
+}
+
 async function readCloudsw3Users() {
-  return cloudsw3Request(`rcds?collName=Users&parentPath=/`);
+  return readCloudsw3Collection("Users", "/");
 }
 
 async function createCloudsw3User(userDocId, user) {
@@ -236,6 +278,220 @@ async function updateCloudsw3User(userDocId, user) {
     method: "POST",
     body: JSON.stringify({ ...user, _id: userDocId })
   });
+}
+
+async function readCloudsw3Projects() {
+  return readCloudsw3Collection("Projects", "/");
+}
+
+async function readCloudsw3Project(projectDocId) {
+  return cloudsw3Request(`rd?parentPath=/&collName=Projects&docName=${encodeURIComponent(projectDocId)}`);
+}
+
+async function createCloudsw3Project(project) {
+  return cloudsw3Request(`cr?collName=Projects&parentPath=/`, {
+    method: "POST",
+    body: JSON.stringify(project)
+  });
+}
+
+async function updateCloudsw3Project(projectDocId, project) {
+  return cloudsw3Request(`upd?collName=Projects&parentPath=/`, {
+    method: "POST",
+    body: JSON.stringify({ ...project, _id: projectDocId })
+  });
+}
+
+async function readCloudsw3Tasks(projectDocId) {
+  return readCloudsw3Collection("Tasks", `/Projects/${projectDocId}`);
+}
+
+async function readCloudsw3Task(projectDocId, taskDocId) {
+  return cloudsw3Request(`rd?parentPath=/Projects/${encodeURIComponent(projectDocId)}&collName=Tasks&docName=${encodeURIComponent(taskDocId)}`);
+}
+
+async function createCloudsw3Task(projectDocId, task) {
+  return cloudsw3Request(`cr?collName=Tasks&parentPath=/Projects/${encodeURIComponent(projectDocId)}`, {
+    method: "POST",
+    body: JSON.stringify(task)
+  });
+}
+
+async function updateCloudsw3Task(projectDocId, taskDocId, task) {
+  return cloudsw3Request(`upd?collName=Tasks&parentPath=/Projects/${encodeURIComponent(projectDocId)}`, {
+    method: "POST",
+    body: JSON.stringify({ ...task, _id: taskDocId })
+  });
+}
+
+async function deleteCloudsw3Task(projectDocId, taskDocId) {
+  return cloudsw3Request(`deld?collName=Tasks&parentPath=/Projects/${encodeURIComponent(projectDocId)}&docName=${encodeURIComponent(taskDocId)}`);
+}
+
+function projectDocIdFromName(name) {
+  const base = String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "project";
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+function normalizeProjectStatus(status) {
+  const value = String(status || "active").trim().toLowerCase().replace(/\s+/g, "_").replace(/-/g, "_");
+  return ["active", "on_hold", "archived", "completed"].includes(value) ? value : "active";
+}
+
+function normalizeProjectPlatform(platform) {
+  const value = String(platform || "Android").trim();
+  return ["Android", "iOS", "Web", "Node", "Webapp", "Other"].includes(value) ? value : "Other";
+}
+
+function publicProjectDocument(project) {
+  const memberEmails = Array.isArray(project.member_emails)
+    ? project.member_emails.map((member) => typeof member === "string" ? member : member?.email || member?.user_email || member?.name || "").filter(Boolean)
+    : [];
+  return {
+    id: project._id || project.id || "",
+    project_name: project.project_name || project.name || "",
+    platform: project.platform || "Android",
+    project_icon_url: project.project_icon_url || project.iconUrl || "",
+    member_emails: memberEmails,
+    status: normalizeProjectStatus(project.status),
+    task_count: Number(project.task_count || 0),
+    progress_percent: Number(project.progress_percent || 0),
+    created_by: project.created_by || "",
+    created_at: project.created_at || "",
+    updated_at: project.updated_at || ""
+  };
+}
+
+async function publicProjectDocumentWithProgress(project) {
+  const publicProject = publicProjectDocument(project);
+  if (!publicProject.id) return publicProject;
+  try {
+    const tasks = await readCloudsw3Tasks(publicProject.id);
+    const taskList = Array.isArray(tasks) ? tasks.map(publicTaskDocument) : [];
+    const completedCount = taskList.filter((task) => task.status === "Completed").length;
+    publicProject.task_count = taskList.length;
+    publicProject.progress_percent = taskList.length ? Math.round((completedCount / taskList.length) * 100) : 0;
+  } catch {
+    publicProject.progress_percent = Number(project.progress_percent || 0);
+  }
+  return publicProject;
+}
+
+function taskDocIdFromName(name) {
+  const base = String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "task";
+  return `${base}-${Date.now().toString(36)}`;
+}
+
+function normalizeTaskStatus(status) {
+  const value = String(status || "Not Started").trim();
+  return ["Not Started", "In Progress", "Partially Completed", "Completed", "Blocked"].includes(value) ? value : "Not Started";
+}
+
+function normalizeTaskPriority(priority) {
+  const value = String(priority || "Medium").trim();
+  return ["Low", "Medium", "High"].includes(value) ? value : "Medium";
+}
+
+function normalizeTaskDate(value) {
+  const clean = String(value || "").trim();
+  if (!clean) return "";
+  const date = new Date(`${clean}T00:00:00`);
+  if (!Number.isNaN(date.getTime()) && /^\d{4}-\d{2}-\d{2}$/.test(clean)) return clean;
+  const parsed = new Date(clean);
+  return Number.isNaN(parsed.getTime()) ? clean : parsed.toISOString().slice(0, 10);
+}
+
+function normalizeAssignees(value) {
+  const items = Array.isArray(value) ? value : String(value || "").split(",");
+  return [...new Set(items
+    .map((email) => String(email || "").trim().toLowerCase())
+    .filter((email) => email && email.includes("@")))];
+}
+
+function publicTaskDocument(task) {
+  return {
+    id: task._id || task.id || "",
+    main_task_name: task.main_task_name || task.main_project_name || task.name || "",
+    description: task.description || "",
+    status: normalizeTaskStatus(task.status),
+    assignee: normalizeAssignees(task.assignee),
+    start_date: normalizeTaskDate(task.start_date),
+    due_date: normalizeTaskDate(task.due_date),
+    priority: normalizeTaskPriority(task.priority),
+    sub_tasks: Array.isArray(task.sub_tasks) ? task.sub_tasks.map((subtask) => ({
+      sub_task_name: subtask.sub_task_name || subtask.name || "",
+      status: normalizeTaskStatus(subtask.status),
+      assignee: normalizeAssignees(subtask.assignee),
+      start_date: normalizeTaskDate(subtask.start_date),
+      due_date: normalizeTaskDate(subtask.due_date),
+      priority: normalizeTaskPriority(subtask.priority)
+    })) : [],
+    dependency_tasks: Array.isArray(task.dependency_tasks) ? task.dependency_tasks.map((dependency) => ({
+      dependency_task_id: dependency.dependency_task_id || dependency.id || "",
+      dependency_task_name: dependency.dependency_task_name || dependency.name || ""
+    })) : [],
+    created_by: task.created_by || "",
+    created_at: task.created_at || "",
+    updated_at: task.updated_at || ""
+  };
+}
+
+function cleanTaskPayload(payload, existingTask = {}) {
+  const taskName = String(payload.main_task_name || payload.main_project_name || "").trim();
+  if (!taskName) throw new Error("Task name is required.");
+  if (taskName.length > 80) throw new Error("Task name must be 80 characters or fewer.");
+  const assignee = normalizeAssignees(payload.assignee);
+  if (!assignee.length) throw new Error("Choose a task assignee.");
+
+  const subTasks = (Array.isArray(payload.sub_tasks) ? payload.sub_tasks : []).map((subtask) => ({
+    sub_task_name: String(subtask.sub_task_name || "").trim(),
+    status: normalizeTaskStatus(subtask.status),
+    assignee: normalizeAssignees(subtask.assignee),
+    start_date: normalizeTaskDate(subtask.start_date),
+    due_date: normalizeTaskDate(subtask.due_date),
+    priority: normalizeTaskPriority(subtask.priority)
+  })).filter((subtask) => subtask.sub_task_name);
+  let status = normalizeTaskStatus(payload.status);
+  if (status === "Completed") {
+    subTasks.forEach((subtask) => { subtask.status = "Completed"; });
+  }
+  const dueDate = normalizeMainDueDate(normalizeTaskDate(payload.due_date), subTasks);
+
+  return {
+    ...existingTask,
+    main_task_name: taskName,
+    description: String(payload.description || "").trim(),
+    status,
+    assignee,
+    start_date: normalizeTaskDate(payload.start_date),
+    due_date: dueDate,
+    priority: normalizeTaskPriority(payload.priority),
+    sub_tasks: subTasks,
+    dependency_tasks: (Array.isArray(payload.dependency_tasks) ? payload.dependency_tasks : []).map((dependency) => ({
+      dependency_task_id: String(dependency.dependency_task_id || "").trim(),
+      dependency_task_name: String(dependency.dependency_task_name || "").trim()
+    })).filter((dependency) => dependency.dependency_task_id || dependency.dependency_task_name)
+  };
+}
+
+function normalizeMainDueDate(mainDueDate, subTasks) {
+  const latestSubtaskDueDate = subTasks
+    .map((subtask) => subtask.due_date)
+    .filter(Boolean)
+    .sort((a, b) => taskDateTime(b) - taskDateTime(a))[0] || "";
+  if (!latestSubtaskDueDate) return mainDueDate;
+  if (!mainDueDate) return latestSubtaskDueDate;
+  return taskDateTime(latestSubtaskDueDate) > taskDateTime(mainDueDate) ? latestSubtaskDueDate : mainDueDate;
 }
 
 async function handleUserProfile(request, response) {
@@ -298,14 +554,236 @@ async function handleUserPhoto(request, response) {
 }
 
 function publicMemberDocument(user) {
+  const photoURL = user.photoURL || user.photoUrl || user.profile_url || user.photo_url || user.avatarUrl || "";
   return {
-    photoURL: user.photoURL || user.photoUrl || user.avatarUrl || "",
+    id: user._id || user.uid || user.id || userDocIdFromEmail(user.email || ""),
+    email: user.email || "",
+    photoURL,
+    profile_url: photoURL,
+    photo_url: photoURL,
     name: user.name || user.displayName || "Unnamed user",
     createdAt: user.createdAt || "",
     lastLoginAt: user.lastLoginAt || "",
     status: user.status || "Active",
     role: user.role || "Member"
   };
+}
+
+async function saveProjectIcon(projectDocId, iconBase64, mimeType) {
+  if (!iconBase64) return "";
+  const { imageBuffer, extension } = parseImagePayload(iconBase64, mimeType, "Project icon");
+  const uploadsDir = join(publicRoot, "project_icons");
+  await mkdir(uploadsDir, { recursive: true });
+  const fileName = `${safeFileName(projectDocId)}.${extension}`;
+  await writeFile(join(uploadsDir, fileName), imageBuffer);
+  return `/project_icons/${fileName}?v=${Date.now()}`;
+}
+
+async function knownUserEmails() {
+  const users = await readCloudsw3Users();
+  return new Set((Array.isArray(users) ? users : [])
+    .map((user) => String(user.email || "").trim().toLowerCase())
+    .filter(Boolean));
+}
+
+async function handleProjectsList(request, response) {
+  if (request.method === "GET") {
+    try {
+      const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+      const includeProgress = requestUrl.searchParams.get("progress") !== "false";
+      const projects = await readCloudsw3Projects();
+      const publicProjects = includeProgress
+        ? await Promise.all((Array.isArray(projects) ? projects : []).map(publicProjectDocumentWithProgress))
+        : (Array.isArray(projects) ? projects : []).map(publicProjectDocument);
+      sendJson(response, 200, { projects: publicProjects });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Projects could not be loaded." });
+    }
+    return;
+  }
+
+  if (request.method === "POST") {
+    try {
+      const payload = await readRequestJson(request);
+      const projectName = String(payload.project_name || "").trim();
+      if (!projectName) throw new Error("Project name is required.");
+      if (projectName.length > 80) throw new Error("Project name must be 80 characters or fewer.");
+
+      const memberEmails = [...new Set((Array.isArray(payload.member_emails) ? payload.member_emails : [])
+        .map((email) => String(email || "").trim().toLowerCase())
+        .filter((email) => email && email.includes("@")))];
+      if (!memberEmails.length) throw new Error("Choose at least one project member.");
+
+      const allowedEmails = await knownUserEmails();
+      const invalidEmails = memberEmails.filter((email) => !allowedEmails.has(email));
+      if (invalidEmails.length) throw new Error("Project members must be existing PMP users.");
+
+      const projectDocId = projectDocIdFromName(projectName);
+      const projectIconUrl = await saveProjectIcon(projectDocId, payload.project_icon_base64, payload.project_icon_mime_type);
+      const now = formatIndiaDateTime();
+      const project = {
+        _id: projectDocId,
+        project_name: projectName,
+        platform: normalizeProjectPlatform(payload.platform),
+        project_icon_url: projectIconUrl,
+        member_emails: memberEmails,
+        status: normalizeProjectStatus(payload.status),
+        task_count: 0,
+        progress_percent: 0,
+        created_by: String(payload.created_by || "").trim().toLowerCase(),
+        created_at: now,
+        updated_at: now
+      };
+
+      await createCloudsw3Project(project);
+      sendJson(response, 201, { project: publicProjectDocument(project) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Project could not be created." });
+    }
+    return;
+  }
+
+  sendJson(response, 405, { error: "Method not allowed" });
+}
+
+async function handleProjectDetail(request, response, projectDocId) {
+  if (request.method !== "PATCH") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const existingProject = await readCloudsw3Project(projectDocId);
+    if (!existingProject) throw new Error("Project not found.");
+    const payload = await readRequestJson(request);
+    const patch = { ...existingProject, updated_at: formatIndiaDateTime() };
+
+    if (payload.status !== undefined) patch.status = normalizeProjectStatus(payload.status);
+    if (payload.project_name !== undefined) {
+      const projectName = String(payload.project_name || "").trim();
+      if (!projectName) throw new Error("Project name is required.");
+      if (projectName.length > 80) throw new Error("Project name must be 80 characters or fewer.");
+      patch.project_name = projectName;
+    }
+    if (payload.platform !== undefined) patch.platform = normalizeProjectPlatform(payload.platform);
+    if (payload.member_emails !== undefined) {
+      const memberEmails = [...new Set((Array.isArray(payload.member_emails) ? payload.member_emails : [])
+        .map((email) => String(email || "").trim().toLowerCase())
+        .filter((email) => email && email.includes("@")))];
+      if (!memberEmails.length) throw new Error("Choose at least one project member.");
+      const allowedEmails = await knownUserEmails();
+      if (memberEmails.some((email) => !allowedEmails.has(email))) throw new Error("Project members must be existing PMP users.");
+      patch.member_emails = memberEmails;
+    }
+    if (payload.project_icon_base64) {
+      patch.project_icon_url = await saveProjectIcon(projectDocId, payload.project_icon_base64, payload.project_icon_mime_type);
+    }
+
+    await updateCloudsw3Project(projectDocId, patch);
+    sendJson(response, 200, { project: publicProjectDocument({ ...patch, _id: projectDocId }) });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Project could not be updated." });
+  }
+}
+
+async function refreshProjectTaskCount(projectDocId, delta = 0) {
+  const project = await readCloudsw3Project(projectDocId);
+  const tasks = await readCloudsw3Tasks(projectDocId);
+  const taskList = Array.isArray(tasks) ? tasks.map(publicTaskDocument) : [];
+  const completedCount = taskList.filter((task) => task.status === "Completed").length;
+  const progressPercent = taskList.length ? Math.round((completedCount / taskList.length) * 100) : 0;
+  await updateCloudsw3Project(projectDocId, {
+    ...project,
+    task_count: taskList.length,
+    progress_percent: progressPercent,
+    updated_at: formatIndiaDateTime()
+  });
+}
+
+function refreshProjectTaskCountSoon(projectDocId) {
+  refreshProjectTaskCount(projectDocId).catch((error) => {
+    console.warn(`Project task stats refresh failed for ${projectDocId}:`, error.message);
+  });
+}
+
+async function handleProjectTasks(request, response, projectDocId) {
+  if (request.method === "GET") {
+    try {
+      const tasks = await readCloudsw3Tasks(projectDocId);
+      const ordered = (Array.isArray(tasks) ? tasks : [])
+        .map(publicTaskDocument)
+        .sort((a, b) => taskDateTime(a.due_date) - taskDateTime(b.due_date));
+      sendJson(response, 200, { tasks: ordered });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Tasks could not be loaded." });
+    }
+    return;
+  }
+
+  if (request.method === "POST") {
+    try {
+      const payload = await readRequestJson(request);
+      const taskDocId = taskDocIdFromName(payload.main_task_name || payload.main_project_name);
+      const now = formatIndiaDateTime();
+      const task = {
+        _id: taskDocId,
+        ...cleanTaskPayload(payload),
+        created_by: String(payload.created_by || "").trim().toLowerCase(),
+        created_at: now,
+        updated_at: now
+      };
+      await createCloudsw3Task(projectDocId, task);
+      await refreshProjectTaskCount(projectDocId, 1);
+      sendJson(response, 201, { task: publicTaskDocument(task) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Task could not be created." });
+    }
+    return;
+  }
+
+  sendJson(response, 405, { error: "Method not allowed" });
+}
+
+async function handleProjectTaskDetail(request, response, projectDocId, taskDocId) {
+  if (request.method === "PATCH") {
+    try {
+      const existingTask = await readCloudsw3Task(projectDocId, taskDocId);
+      if (!existingTask) throw new Error("Task not found.");
+      const payload = await readRequestJson(request);
+      const task = {
+        ...cleanTaskPayload({ ...publicTaskDocument(existingTask), ...payload }, existingTask),
+        _id: taskDocId,
+        created_by: existingTask.created_by || payload.created_by || "",
+        created_at: existingTask.created_at || "",
+        updated_at: formatIndiaDateTime()
+      };
+      await updateCloudsw3Task(projectDocId, taskDocId, task);
+      refreshProjectTaskCountSoon(projectDocId);
+      sendJson(response, 200, { task: publicTaskDocument(task) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Task could not be updated." });
+    }
+    return;
+  }
+
+  if (request.method === "DELETE") {
+    try {
+      await deleteCloudsw3Task(projectDocId, taskDocId);
+      await refreshProjectTaskCount(projectDocId, -1);
+      sendJson(response, 200, { ok: true });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Task could not be deleted." });
+    }
+    return;
+  }
+
+  sendJson(response, 405, { error: "Method not allowed" });
+}
+
+function taskDateTime(value) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const time = new Date(`${value}T00:00:00`).getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
 }
 
 async function handleMembersList(request, response) {
@@ -315,10 +793,29 @@ async function handleMembersList(request, response) {
   }
 
   try {
+    const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+    const requestedEmails = String(requestUrl.searchParams.get("emails") || "")
+      .split(",")
+      .map((email) => email.trim().toLowerCase())
+      .filter((email) => email && email.includes("@"));
     const users = await readCloudsw3Users();
-    const members = (Array.isArray(users) ? users : [])
+    const membersByEmail = new Map((Array.isArray(users) ? users : [])
       .map(publicMemberDocument)
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .filter((member) => member.email)
+      .map((member) => [member.email.toLowerCase(), member]));
+
+    await Promise.all(requestedEmails.map(async (email) => {
+      if (membersByEmail.has(email)) return;
+      try {
+        const user = await readCloudsw3User(userDocIdFromEmail(email));
+        const member = publicMemberDocument({ ...user, email: user.email || email });
+        membersByEmail.set(email, member);
+      } catch {
+        membersByEmail.set(email, { id: userDocIdFromEmail(email), email, name: email, photoURL: "", profile_url: "", photo_url: "" });
+      }
+    }));
+
+    const members = [...membersByEmail.values()].sort((a, b) => a.name.localeCompare(b.name));
     sendJson(response, 200, { members });
   } catch (error) {
     sendJson(response, 400, { error: error.message || "Members could not be loaded." });
@@ -381,6 +878,29 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (requestPath === "/api/projects") {
+    await handleProjectsList(request, response);
+    return;
+  }
+
+  const tasksMatch = requestPath.match(/^\/api\/projects\/([^/]+)\/tasks$/);
+  if (tasksMatch) {
+    await handleProjectTasks(request, response, tasksMatch[1]);
+    return;
+  }
+
+  const taskMatch = requestPath.match(/^\/api\/projects\/([^/]+)\/tasks\/([^/]+)$/);
+  if (taskMatch) {
+    await handleProjectTaskDetail(request, response, taskMatch[1], taskMatch[2]);
+    return;
+  }
+
+  const projectMatch = requestPath.match(/^\/api\/projects\/([^/]+)$/);
+  if (projectMatch) {
+    await handleProjectDetail(request, response, projectMatch[1]);
+    return;
+  }
+
   const routeMap = {
     "/": "index.html",
     "/dashboard": "dashboard.html",
@@ -408,9 +928,10 @@ createServer(async (request, response) => {
     return;
   }
 
+  const extension = extname(filePath).toLowerCase();
   response.writeHead(200, {
-    "Cache-Control": "no-store",
-    "Content-Type": types[extname(filePath).toLowerCase()] || "application/octet-stream"
+    "Cache-Control": staticCacheControl(requestPath, extension),
+    "Content-Type": types[extension] || "application/octet-stream"
   });
   createReadStream(filePath).pipe(response);
 }).listen(port, "127.0.0.1", () => {

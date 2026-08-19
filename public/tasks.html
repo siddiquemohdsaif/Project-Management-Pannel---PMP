@@ -69,8 +69,7 @@
               <input id="searchInput" type="search" placeholder="Search tasks..." autocomplete="off" />
             </label>
             <label class="status-filter"><select id="statusFilter" aria-label="Filter by status"><option value="all">All Status</option><option>Completed</option><option>In Progress</option><option>Partially Completed</option><option>Not Started</option><option>Blocked</option></select></label>
-            <label class="status-filter"><select id="assigneeFilter" aria-label="Filter by assignee"><option value="all">All Assignees</option><option>John Doe</option><option>Sarah Johnson</option><option>Priya Rao</option><option>Arun Roy</option><option>Vikram Kumar</option></select></label>
-            <label class="status-filter"><select id="labelFilter" aria-label="Filter by label"><option value="all">All Labels</option><option>Planning</option><option>Design</option><option>Roadmap</option></select></label>
+            <label class="status-filter"><select id="assigneeFilter" aria-label="Filter by assignee"><option value="all">All Assignees</option></select></label>
             <button class="filter-button" id="clearFilters" type="button" aria-label="Clear filters"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16l-6 7v5l-4 2v-7Z"/><path d="M8 4v2M16 4v2"/></svg></button>
           </div>
 
@@ -78,21 +77,12 @@
             <div class="table-wrap">
               <table class="projects-table tasks-table" id="tasksTable">
                 <thead><tr><th><button class="subtask-toggle all-subtasks-toggle" id="toggleAllSubtasks" type="button" aria-expanded="false" aria-label="Show all subtasks"></button></th><th>Sr No</th><th>Task Name</th><th>Status</th><th>Assignee</th><th>Due Date</th><th>Priority</th><th aria-label="Edit task"></th></tr></thead>
-                <tbody id="tasksBody">
-                  <tr class="phase-row" data-name="Project Planning" data-task-id="planning" data-due="2024-05-05" data-status="Completed" data-assignee="John Doe" data-label="Planning"><td><button class="subtask-toggle" type="button" data-toggle-subtasks="planning" aria-expanded="false" aria-label="Show Project Planning subtasks"></button></td><td class="task-index">1</td><td class="task-title">Project Planning</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 5, 2024</td><td><span class="priority high">High</span></td></tr>
-                  <tr class="subtask-row" data-parent="planning" data-name="Define Scope" data-due="2024-05-01" data-status="Completed" data-assignee="John Doe" data-label="Planning" hidden><td></td><td class="task-index">1.1</td><td class="task-title subtask-name">Define Scope</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 1, 2024</td><td><span class="priority high">High</span></td></tr>
-                  <tr class="subtask-row" data-parent="planning" data-name="Requirements" data-due="2024-05-15" data-status="In Progress" data-assignee="John Doe" data-label="Planning" hidden><td></td><td class="task-index">1.2</td><td class="task-title subtask-name">Requirements</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 15, 2024</td><td><span class="priority high">High</span></td></tr>
-                  <tr class="subtask-row" data-parent="planning" data-name="Create Roadmap" data-due="2024-05-20" data-status="Partially Completed" data-assignee="Sarah Johnson" data-label="Roadmap" hidden><td></td><td class="task-index">1.3</td><td class="task-title subtask-name">Create Roadmap</td><td><button class="status-pill partial status-button" type="button" data-status-button>Partially Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 20, 2024</td><td><span class="priority medium">Medium</span></td></tr>
-                  <tr class="phase-row" data-name="UI/UX Design" data-task-id="design" data-due="2024-05-30" data-status="In Progress" data-assignee="Sarah Johnson" data-label="Design"><td><button class="subtask-toggle" type="button" data-toggle-subtasks="design" aria-expanded="false" aria-label="Show UI/UX Design subtasks"></button></td><td class="task-index">2</td><td class="task-title">UI/UX Design</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 30, 2024</td><td><span class="priority high">High</span></td></tr>
-                  <tr class="subtask-row" data-parent="design" data-name="Wireframes" data-due="2024-05-10" data-status="Completed" data-assignee="John Doe" data-label="Design" hidden><td></td><td class="task-index">2.1</td><td class="task-title subtask-name">Wireframes</td><td><button class="status-pill completed status-button" type="button" data-status-button>Completed</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /></span></td><td class="muted">May 10, 2024</td><td><span class="priority medium">Medium</span></td></tr>
-                  <tr class="subtask-row" data-parent="design" data-name="Mockups" data-due="2024-05-25" data-status="In Progress" data-assignee="John Doe" data-label="Design" hidden><td></td><td class="task-index">2.2</td><td class="task-title subtask-name">Mockups</td><td><button class="status-pill in-progress status-button" type="button" data-status-button>In Progress</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=12" alt="John Doe" /><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">May 25, 2024</td><td><span class="priority medium">Medium</span></td></tr>
-                  <tr class="subtask-row" data-parent="design" data-name="Design System" data-due="2024-06-05" data-status="Not Started" data-assignee="Sarah Johnson" data-label="Design" hidden><td></td><td class="task-index">2.3</td><td class="task-title subtask-name">Design System</td><td><button class="status-pill not-started status-button" type="button" data-status-button>Not Started</button></td><td><span class="assignee-cell"><img class="task-avatar" src="https://i.pravatar.cc/100?img=32" alt="Sarah Johnson" /></span></td><td class="muted">Jun 5, 2024</td><td><span class="priority low">Low</span></td></tr>
-                </tbody>
+                <tbody id="tasksBody"></tbody>
               </table>
               <div class="empty-state" id="emptyState" hidden>No tasks match your filters.</div>
             </div>
             <footer class="projects-footer">
-              <span id="footerCount">Showing 1 to 8 of 128 tasks</span>
+              <span id="footerCount">Loading tasks</span>
               <div class="pagination" role="navigation" aria-label="Pagination"><button type="button" aria-label="Previous page">&lsaquo;</button><button type="button" class="active" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button" disabled>...</button><button type="button">16</button><button type="button" aria-label="Next page">&rsaquo;</button></div>
             </footer>
           </div>
@@ -243,6 +233,6 @@
     </dialog>
     <div class="status-menu" id="statusMenu" role="menu" hidden></div>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-    <script type="module" src="./js/tasks.js"></script>
+    <script type="module" src="./js/tasks-live.js"></script>
   </body>
 </html>

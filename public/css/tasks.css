@@ -54,7 +54,7 @@
   padding: 9px;
   border-radius: 7px;
 }
-.tasks-toolbar { display: grid; grid-template-columns: minmax(250px, 1fr) 160px 180px 170px 52px; gap: 14px; margin-bottom: 18px; }
+.tasks-toolbar { display: grid; grid-template-columns: minmax(250px, 1fr) 160px 180px 52px; gap: 14px; margin-bottom: 18px; }
 .tasks-toolbar .status-filter select { width: 100%; }
 .filter-button {
   display: grid;
@@ -345,7 +345,7 @@
 }
 
 @media (min-width: 821px) {
-  .tasks-shell .tasks-toolbar { grid-template-columns: minmax(250px, 1fr) 160px 180px 170px 52px; gap: 14px; }
+  .tasks-shell .tasks-toolbar { grid-template-columns: minmax(250px, 1fr) 160px 180px 52px; gap: 14px; }
   .tasks-shell .tasks-table thead th { color: #17233b; font-size: 11px; font-weight: 650; }
   .tasks-shell .tasks-table tbody td { color: #19263d; font-size: 13px; }
   .tasks-shell .task-title { font-size: 13px; }

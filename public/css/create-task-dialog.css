@@ -148,6 +148,9 @@
   font-weight: 400;
   line-height: 1.2;
 }
+.task-form-card [hidden] {
+  display: none !important;
+}
 .task-field > span {
   color: #40526c;
   font-size: 12px;
@@ -313,6 +316,14 @@
 .multi-option + .multi-option { border-top: 1px solid #eef2f7; }
 .multi-option:hover { background: #f6f9fd; }
 .multi-option input { width: 15px; min-height: 15px; height: 15px; accent-color: #1469f3; box-shadow: none; }
+.member-option-avatar {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eaf2ff;
+}
 .priority-summary {
   display: inline-flex;
   align-items: center;

@@ -214,3 +214,8 @@ function logoutCurrentUser() {
     window.location.href = LOGIN_PATH;
   });
 }
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/image-cache-sw.js").catch(() => {});
+  }, { once: true });
+}
