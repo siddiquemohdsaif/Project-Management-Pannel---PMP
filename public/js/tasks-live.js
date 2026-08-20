@@ -641,7 +641,8 @@ async function uploadBulkTasksIndividually(taskPayloads) {
 
     const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(created.id)}`, patchOptions({
       ...created,
-      dependency_tasks: dependencies
+      dependency_tasks: dependencies,
+      actor_email: getStoredUser()?.email || ""
     }));
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || `Could not set dependencies for "${created.main_task_name}".`);
@@ -822,7 +823,10 @@ function payloadFromCreateForm() {
 
 async function saveTask(task, message) {
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(task.id)}`, patchOptions(normalizeTaskDates(task)));
+    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(task.id)}`, patchOptions({
+      ...normalizeTaskDates(task),
+      actor_email: getStoredUser()?.email || ""
+    }));
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || "Task could not be updated.");
     tasks = tasks.map((item) => item.id === result.task.id ? result.task : item);
@@ -928,7 +932,11 @@ async function deleteCurrentEditTarget() {
   }
 
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(editState.task.id)}`, { method: "DELETE" });
+    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(editState.task.id)}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actor_email: getStoredUser()?.email || "" })
+    });
     const result = await readJson(response);
     if (!response.ok) throw new Error(result.error || "Task could not be deleted.");
     tasks = tasks.filter((task) => task.id !== editState.task.id);

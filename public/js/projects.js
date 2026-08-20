@@ -141,7 +141,8 @@ newProjectForm.addEventListener("submit", async (e) => {
       platform,
       member_emails: memberEmails,
       status: "active",
-      created_by: getStoredUser()?.email || ""
+      created_by: getStoredUser()?.email || "",
+      actor_email: getStoredUser()?.email || ""
     };
     if (selectedProjectIcon) {
       payload.project_icon_base64 = selectedProjectIcon;
@@ -251,7 +252,7 @@ async function updateProjectStatus(button, statusLabel) {
     const response = await fetch(`/api/projects/${encodeURIComponent(row.dataset.id)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status, actor_email: getStoredUser()?.email || "" })
     });
     const result = await readApiResponse(response);
     if (!response.ok) throw new Error(result.error || "Project status could not be updated.");

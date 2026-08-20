@@ -266,6 +266,17 @@ async function readCloudsw3Users() {
   return readCloudsw3Collection("Users", "/");
 }
 
+async function readCloudsw3Activities() {
+  return readCloudsw3Collection("Activities", "/");
+}
+
+async function createCloudsw3Activity(activity) {
+  return cloudsw3Request("cr?collName=Activities&parentPath=/", {
+    method: "POST",
+    body: JSON.stringify(activity)
+  });
+}
+
 async function createCloudsw3User(userDocId, user) {
   return cloudsw3Request(`cr?collName=Users&parentPath=/`, {
     method: "POST",
@@ -336,6 +347,66 @@ function projectDocIdFromName(name) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 48) || "project";
   return `${base}-${Date.now().toString(36)}`;
+}
+
+function activityDocId() {
+  return `activity-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function cleanActorEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+async function recordActivity(activity) {
+  const actorEmail = cleanActorEmail(activity.actor_email);
+  if (!actorEmail) return;
+  await createCloudsw3Activity({
+    _id: activityDocId(),
+    event_type: String(activity.event_type || "activity").trim(),
+    actor_email: actorEmail,
+    project_id: String(activity.project_id || "").trim(),
+    project_name: String(activity.project_name || "").trim(),
+    entity_type: String(activity.entity_type || "").trim(),
+    entity_id: String(activity.entity_id || "").trim(),
+    entity_name: String(activity.entity_name || "").trim(),
+    summary: String(activity.summary || "Activity recorded").trim(),
+    changes: activity.changes && typeof activity.changes === "object" ? activity.changes : {},
+    metadata: activity.metadata && typeof activity.metadata === "object" ? activity.metadata : {},
+    created_at: new Date().toISOString()
+  });
+}
+
+async function recordActivitiesSafely(activities) {
+  await Promise.all((Array.isArray(activities) ? activities : [activities]).map(async (activity) => {
+    try {
+      await recordActivity(activity);
+    } catch (error) {
+      console.error("Activity record failed:", error.message || error);
+    }
+  }));
+}
+
+function publicActivityDocument(activity, usersByEmail = new Map(), projectsById = new Map()) {
+  const actorEmail = cleanActorEmail(activity.actor_email);
+  const member = usersByEmail.get(actorEmail);
+  const project = projectsById.get(activity.project_id);
+  return {
+    id: activity._id || activity.id || "",
+    event_type: activity.event_type || "activity",
+    actor_email: actorEmail,
+    actor_name: member?.name || actorEmail || "Unknown user",
+    actor_profile_url: member?.photoURL || member?.profile_url || "",
+    project_id: activity.project_id || "",
+    project_name: activity.project_name || "",
+    project_icon_url: project?.project_icon_url || "",
+    entity_type: activity.entity_type || "",
+    entity_id: activity.entity_id || "",
+    entity_name: activity.entity_name || "",
+    summary: activity.summary || "Activity recorded",
+    changes: activity.changes && typeof activity.changes === "object" ? activity.changes : {},
+    metadata: activity.metadata && typeof activity.metadata === "object" ? activity.metadata : {},
+    created_at: activity.created_at || ""
+  };
 }
 
 function normalizeProjectStatus(status) {
@@ -605,6 +676,105 @@ async function knownUserEmails() {
     .filter(Boolean));
 }
 
+function projectStatusLabel(value) {
+  return ({ active: "Active", on_hold: "On Hold", archived: "Archived", completed: "Completed" })[normalizeProjectStatus(value)] || "Active";
+}
+
+function sameJson(left, right) {
+  return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
+}
+
+function taskChangeActivities(existingTask, nextTask, context) {
+  const events = [];
+  const oldTask = publicTaskDocument(existingTask);
+  const newTask = publicTaskDocument(nextTask);
+  const base = {
+    actor_email: context.actor_email,
+    project_id: context.project_id,
+    project_name: context.project_name,
+    entity_type: "task",
+    entity_id: newTask.id,
+    entity_name: newTask.main_task_name
+  };
+
+  if (oldTask.status !== newTask.status) {
+    const autoCompleted = newTask.status === "Completed"
+      ? oldTask.sub_tasks.filter((subtask, index) => subtask.status !== "Completed" && newTask.sub_tasks[index]?.status === "Completed").length
+      : 0;
+    events.push({
+      ...base,
+      event_type: "task_status_changed",
+      summary: `${newTask.main_task_name} moved to ${newTask.status}`,
+      changes: { field: "status", from: oldTask.status, to: newTask.status },
+      metadata: { auto_completed_subtasks: autoCompleted }
+    });
+  }
+
+  if (newTask.status !== "Completed") {
+    const subtaskCount = Math.max(oldTask.sub_tasks.length, newTask.sub_tasks.length);
+    for (let index = 0; index < subtaskCount; index += 1) {
+      const before = oldTask.sub_tasks[index];
+      const after = newTask.sub_tasks[index];
+      if (!before || !after || before.status === after.status) continue;
+      events.push({
+        ...base,
+        event_type: "subtask_status_changed",
+        entity_type: "subtask",
+        entity_id: `${newTask.id}:${index}`,
+        entity_name: after.sub_task_name,
+        summary: `${after.sub_task_name} moved to ${after.status}`,
+        changes: { field: "status", from: before.status, to: after.status },
+        metadata: { parent_task_id: newTask.id, parent_task_name: newTask.main_task_name }
+      });
+    }
+  }
+
+  const changedFields = ["main_task_name", "description", "assignee", "start_date", "due_date", "priority", "dependency_tasks"]
+    .filter((field) => !sameJson(oldTask[field], newTask[field]));
+  const subtaskShapeChanged = !sameJson(
+    oldTask.sub_tasks.map(({ status, ...subtask }) => subtask),
+    newTask.sub_tasks.map(({ status, ...subtask }) => subtask)
+  );
+  if (changedFields.length || subtaskShapeChanged) {
+    events.push({
+      ...base,
+      event_type: "task_updated",
+      summary: `${newTask.main_task_name} updated`,
+      changes: { fields: [...changedFields, ...(subtaskShapeChanged ? ["sub_tasks"] : [])] },
+      metadata: {}
+    });
+  }
+  return events;
+}
+
+async function handleActivitiesList(request, response) {
+  if (request.method !== "GET") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+  try {
+    const [activityDocs, userDocs, projectDocs] = await Promise.all([
+      readCloudsw3Activities(),
+      readCloudsw3Users(),
+      readCloudsw3Projects()
+    ]);
+    const usersByEmail = new Map((Array.isArray(userDocs) ? userDocs : [])
+      .map(publicMemberDocument)
+      .filter((member) => member.email)
+      .map((member) => [cleanActorEmail(member.email), member]));
+    const projectsById = new Map((Array.isArray(projectDocs) ? projectDocs : [])
+      .map(publicProjectDocument)
+      .filter((project) => project.id)
+      .map((project) => [project.id, project]));
+    const activities = (Array.isArray(activityDocs) ? activityDocs : [])
+      .map((activity) => publicActivityDocument(activity, usersByEmail, projectsById))
+      .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at));
+    sendJson(response, 200, { activities });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Activity could not be loaded." });
+  }
+}
+
 async function handleProjectsList(request, response) {
   if (request.method === "GET") {
     try {
@@ -655,6 +825,18 @@ async function handleProjectsList(request, response) {
       };
 
       await createCloudsw3Project(project);
+      await recordActivitiesSafely({
+        event_type: "project_created",
+        actor_email: project.created_by,
+        project_id: projectDocId,
+        project_name: projectName,
+        entity_type: "project",
+        entity_id: projectDocId,
+        entity_name: projectName,
+        summary: `${projectName} project created`,
+        changes: {},
+        metadata: { platform: project.platform, member_count: memberEmails.length }
+      });
       sendJson(response, 201, { project: publicProjectDocument(project) });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Project could not be created." });
@@ -699,6 +881,48 @@ async function handleProjectDetail(request, response, projectDocId) {
     }
 
     await updateCloudsw3Project(projectDocId, patch);
+    const before = publicProjectDocument({ ...existingProject, _id: projectDocId });
+    const after = publicProjectDocument({ ...patch, _id: projectDocId });
+    const actorEmail = cleanActorEmail(payload.actor_email || payload.updated_by);
+    const baseActivity = {
+      actor_email: actorEmail,
+      project_id: projectDocId,
+      project_name: after.project_name,
+      entity_type: "project",
+      entity_id: projectDocId,
+      entity_name: after.project_name
+    };
+    const activities = [];
+    if (before.status !== after.status) activities.push({
+      ...baseActivity,
+      event_type: "project_status_changed",
+      summary: `${after.project_name} moved to ${projectStatusLabel(after.status)}`,
+      changes: { field: "status", from: projectStatusLabel(before.status), to: projectStatusLabel(after.status) },
+      metadata: {}
+    });
+    if (!sameJson(before.member_emails, after.member_emails)) {
+      const beforeMembers = new Set(before.member_emails);
+      const afterMembers = new Set(after.member_emails);
+      activities.push({
+        ...baseActivity,
+        event_type: "project_members_changed",
+        summary: `${after.project_name} members updated`,
+        changes: {},
+        metadata: {
+          added: after.member_emails.filter((email) => !beforeMembers.has(email)),
+          removed: before.member_emails.filter((email) => !afterMembers.has(email))
+        }
+      });
+    }
+    const projectFields = ["project_name", "platform", "project_icon_url"].filter((field) => before[field] !== after[field]);
+    if (projectFields.length) activities.push({
+      ...baseActivity,
+      event_type: "project_updated",
+      summary: `${after.project_name} project details updated`,
+      changes: { fields: projectFields },
+      metadata: {}
+    });
+    await recordActivitiesSafely(activities);
     sendJson(response, 200, { project: publicProjectDocument({ ...patch, _id: projectDocId }) });
   } catch (error) {
     sendJson(response, 400, { error: error.message || "Project could not be updated." });
@@ -736,6 +960,8 @@ async function handleProjectTasks(request, response, projectDocId) {
   if (request.method === "POST") {
     try {
       const payload = await readRequestJson(request);
+      const project = publicProjectDocument(await readCloudsw3Project(projectDocId));
+      if (!project.id) throw new Error("Project not found.");
       const taskDocId = taskDocIdFromName(payload.main_task_name || payload.main_project_name);
       const now = formatIndiaDateTime();
       const task = {
@@ -746,7 +972,21 @@ async function handleProjectTasks(request, response, projectDocId) {
         updated_at: now
       };
       await createCloudsw3Task(projectDocId, task);
-      await refreshProjectTaskCount(projectDocId, 1);
+      await Promise.all([
+        refreshProjectTaskCount(projectDocId, 1),
+        recordActivitiesSafely({
+          event_type: "task_created",
+          actor_email: task.created_by,
+          project_id: projectDocId,
+          project_name: project.project_name,
+          entity_type: "task",
+          entity_id: taskDocId,
+          entity_name: task.main_task_name,
+          summary: `${task.main_task_name} task created`,
+          changes: {},
+          metadata: { subtask_count: task.sub_tasks.length }
+        })
+      ]);
       sendJson(response, 201, { task: publicTaskDocument(task) });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Task could not be created." });
@@ -838,7 +1078,26 @@ async function handleBulkProjectTasks(request, response, projectDocId) {
     });
 
     for (const task of prepared) await createCloudsw3Task(projectDocId, task);
-    await refreshProjectTaskCount(projectDocId);
+    const subtaskCount = prepared.reduce((count, task) => count + task.sub_tasks.length, 0);
+    await Promise.all([
+      refreshProjectTaskCount(projectDocId),
+      recordActivitiesSafely({
+        event_type: "bulk_tasks_uploaded",
+        actor_email: payload.created_by,
+        project_id: projectDocId,
+        project_name: project.project_name,
+        entity_type: "project",
+        entity_id: projectDocId,
+        entity_name: project.project_name,
+        summary: `${prepared.length} main tasks and ${subtaskCount} subtasks uploaded`,
+        changes: {},
+        metadata: {
+          main_task_count: prepared.length,
+          subtask_count: subtaskCount,
+          ignored_dependency_count: [...new Set(ignoredDependencies)].length
+        }
+      })
+    ]);
     sendJson(response, 201, {
       tasks: prepared.map(publicTaskDocument),
       ignored_dependencies: [...new Set(ignoredDependencies)]
@@ -851,8 +1110,12 @@ async function handleBulkProjectTasks(request, response, projectDocId) {
 async function handleProjectTaskDetail(request, response, projectDocId, taskDocId) {
   if (request.method === "PATCH") {
     try {
-      const existingTask = await readCloudsw3Task(projectDocId, taskDocId);
+      const [existingTask, projectDoc] = await Promise.all([
+        readCloudsw3Task(projectDocId, taskDocId),
+        readCloudsw3Project(projectDocId)
+      ]);
       if (!existingTask) throw new Error("Task not found.");
+      const project = publicProjectDocument(projectDoc);
       const payload = await readRequestJson(request);
       const task = {
         ...cleanTaskPayload({ ...publicTaskDocument(existingTask), ...payload }, existingTask),
@@ -862,7 +1125,14 @@ async function handleProjectTaskDetail(request, response, projectDocId, taskDocI
         updated_at: formatIndiaDateTime()
       };
       await updateCloudsw3Task(projectDocId, taskDocId, task);
-      await refreshProjectTaskCount(projectDocId);
+      await Promise.all([
+        refreshProjectTaskCount(projectDocId),
+        recordActivitiesSafely(taskChangeActivities(existingTask, task, {
+          actor_email: payload.actor_email || payload.updated_by,
+          project_id: projectDocId,
+          project_name: project.project_name
+        }))
+      ]);
       sendJson(response, 200, { task: publicTaskDocument(task) });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Task could not be updated." });
@@ -872,8 +1142,30 @@ async function handleProjectTaskDetail(request, response, projectDocId, taskDocI
 
   if (request.method === "DELETE") {
     try {
+      const payload = await readRequestJson(request);
+      const [existingTask, projectDoc] = await Promise.all([
+        readCloudsw3Task(projectDocId, taskDocId),
+        readCloudsw3Project(projectDocId)
+      ]);
+      if (!existingTask) throw new Error("Task not found.");
+      const project = publicProjectDocument(projectDoc);
+      const task = publicTaskDocument(existingTask);
       await deleteCloudsw3Task(projectDocId, taskDocId);
-      await refreshProjectTaskCount(projectDocId, -1);
+      await Promise.all([
+        refreshProjectTaskCount(projectDocId, -1),
+        recordActivitiesSafely({
+          event_type: "task_deleted",
+          actor_email: payload.actor_email,
+          project_id: projectDocId,
+          project_name: project.project_name,
+          entity_type: "task",
+          entity_id: taskDocId,
+          entity_name: task.main_task_name,
+          summary: `${task.main_task_name} task deleted`,
+          changes: {},
+          metadata: {}
+        })
+      ]);
       sendJson(response, 200, { ok: true });
     } catch (error) {
       sendJson(response, 400, { error: error.message || "Task could not be deleted." });
@@ -979,6 +1271,11 @@ createServer(async (request, response) => {
 
   if (requestPath === "/api/members") {
     await handleMembersList(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/activities") {
+    await handleActivitiesList(request, response);
     return;
   }
 

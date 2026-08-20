@@ -9,7 +9,7 @@
     <script src="./js/auth-guard.js"></script>
     <link rel="stylesheet" href="./css/styles.css" />
     <link rel="stylesheet" href="./css/projects.css" />
-    <link rel="stylesheet" href="./css/activity.css" />
+    <link rel="stylesheet" href="./css/activity.css?v=activity-20260820-2" />
   </head>
   <body class="projects-shell activity-shell">
     <div class="app-shell">
@@ -39,26 +39,19 @@
           <h2 class="sr-only" id="activityHeading">Project activity feed</h2>
           <div class="activity-toolbar">
             <label class="search-field"><svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="searchInput" type="search" placeholder="Search activity..." autocomplete="off" /></label>
-            <label class="status-filter"><select id="actorFilter" aria-label="Filter by actor"><option value="all">All Actors</option><option>John Doe</option><option>Sarah Johnson</option><option>Priya Rao</option></select></label>
-            <label class="status-filter"><select id="typeFilter" aria-label="Filter by type"><option value="all">All Types</option><option>Task</option><option>Comment</option><option>Member</option><option>Project</option></select></label>
+            <label class="status-filter"><select id="actorFilter" aria-label="Filter by actor"><option value="all">All Actors</option></select></label>
+            <label class="status-filter"><select id="typeFilter" aria-label="Filter by type"><option value="all">All Types</option><option value="Task">Task</option><option value="Project">Project</option><option value="Member">Member</option></select></label>
             <label class="status-filter"><select id="dateFilter" aria-label="Filter by date"><option value="all">All Dates</option><option>Today</option><option>This Week</option><option>This Month</option></select></label>
           </div>
 
-          <div class="activity-list" id="activityList">
-            <article class="activity-item" data-actor="Sarah Johnson" data-type="Task" data-date="Today" data-text="Sarah Johnson changed Implement Authentication to In Progress"><span class="activity-icon">T</span><div class="activity-copy"><strong>Implement Authentication moved to In Progress</strong><span>Sarah Johnson updated task status in Acme Mobile App.</span></div><time class="activity-meta">Today, 2:15 PM</time></article>
-            <article class="activity-item" data-actor="John Doe" data-type="Comment" data-date="Today" data-text="John Doe commented on Requirements"><span class="activity-icon orange">C</span><div class="activity-copy"><strong>New comment on Requirements</strong><span>John Doe added a note about scope confirmation.</span></div><time class="activity-meta">Today, 12:40 PM</time></article>
-            <article class="activity-item" data-actor="Priya Rao" data-type="Task" data-date="This Week" data-text="Priya Rao completed Wireframes"><span class="activity-icon green">D</span><div class="activity-copy"><strong>Wireframes completed</strong><span>Priya Rao marked the design task as complete.</span></div><time class="activity-meta">May 12, 9:15 AM</time></article>
-            <article class="activity-item" data-actor="John Doe" data-type="Member" data-date="This Week" data-text="John Doe assigned Sarah Johnson to Create Roadmap"><span class="activity-icon gray">M</span><div class="activity-copy"><strong>Assignee changed on Create Roadmap</strong><span>Sarah Johnson was added as the primary owner.</span></div><time class="activity-meta">May 11, 4:05 PM</time></article>
-            <article class="activity-item" data-actor="Sarah Johnson" data-type="Project" data-date="This Month" data-text="Sarah Johnson updated project due date"><span class="activity-icon">P</span><div class="activity-copy"><strong>Project timeline updated</strong><span>Forecast finish moved to Jun 28, 2024.</span></div><time class="activity-meta">May 10, 11:20 AM</time></article>
-            <article class="activity-item" data-actor="John Doe" data-type="Task" data-date="This Month" data-text="John Doe created Design System task"><span class="activity-icon green">+</span><div class="activity-copy"><strong>Design System task created</strong><span>New task added under UI/UX Design.</span></div><time class="activity-meta">May 9, 5:45 PM</time></article>
-          </div>
+          <div class="activity-list" id="activityList" aria-live="polite"></div>
           <div class="activity-empty" id="emptyState" hidden>No activity matches your filters.</div>
-          <footer class="activity-footer"><span id="footerCount">Showing 1 to 6 of 42 events</span><div class="pagination" role="navigation" aria-label="Pagination"><button type="button" aria-label="Previous page">&lsaquo;</button><button type="button" class="active" aria-current="page">1</button><button type="button">2</button><button type="button">3</button><button type="button" aria-label="Next page">&rsaquo;</button></div></footer>
+          <footer class="activity-footer"><span id="footerCount">Loading activity</span><div class="pagination" id="activityPagination" role="navigation" aria-label="Pagination"></div></footer>
         </section>
       </main>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-    <script type="module" src="./js/activity.js?v=pmp-20260819-4"></script>
+    <script type="module" src="./js/activity.js?v=pmp-20260820-3"></script>
   </body>
 </html>

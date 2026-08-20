@@ -3,6 +3,7 @@ let warmupPromise = null;
 const taskWarmups = new Map();
 
 export const dataCacheKeys = {
+  activities: "activities",
   members: "members",
   projects: "projects",
   tasks: (projectId) => `tasks:${projectId}`
