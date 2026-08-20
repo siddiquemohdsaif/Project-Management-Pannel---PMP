@@ -1,7 +1,7 @@
 const IMAGE_CACHE = "pmp-images-v1";
-const SHELL_CACHE = "pmp-shell-v8";
+const SHELL_CACHE = "pmp-shell-v9";
 const IMAGE_DESTINATIONS = new Set(["image"]);
-const APP_ROUTES = ["/dashboard", "/projects", "/tasks", "/members", "/activity"];
+const APP_ROUTES = ["/dashboard", "/projects", "/tasks", "/gantt", "/members", "/activity"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil((async () => {
