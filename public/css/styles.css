@@ -174,8 +174,15 @@ button { color: inherit; }
 .project-heading { gap: 12px; }
 .project-identity-mark { position: relative; display: grid; width: 50px; height: 50px; flex: 0 0 50px; place-items: center; border: 1px solid #d7e5fb; border-radius: 15px; color: #286fd8; background: linear-gradient(145deg, #f0f6ff, #e4efff); box-shadow: 0 7px 18px rgb(30 102 210 / 10%), inset 0 0 0 1px rgb(255 255 255 / 65%); }
 .project-identity-mark::before { position: absolute; inset: 7px; content: ""; border: 1px solid rgb(42 115 220 / 9%); border-radius: 11px; transform: rotate(7deg); }
-.project-identity-mark i { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border: 3px solid white; border-radius: 50%; background: #20ad59; box-shadow: 0 2px 5px rgb(16 107 55 / 20%); }
+.project-identity-mark i { position: absolute; right: -2px; bottom: -2px; z-index: 2; width: 12px; height: 12px; border: 3px solid white; border-radius: 50%; background: #20ad59; box-shadow: 0 2px 5px rgb(16 107 55 / 20%); }
 .project-people { position: relative; z-index: 1; width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.dashboard-page .project-identity-mark { isolation: isolate; overflow: visible; }
+.dashboard-page .project-identity-mark::before { z-index: 0; }
+.dashboard-page .active-project-icon { position: relative; z-index: 1; width: 30px; height: 30px; border-radius: 8px; object-fit: cover; background: white; }
+.dashboard-page .project-identity-mark.has-project-icon .project-people,
+.dashboard-page .project-identity-mark:not(.has-project-icon) .active-project-icon,
+.dashboard-page .project-people[hidden],
+.dashboard-page .active-project-icon[hidden] { display: none; }
 .project-selector { display: flex; min-width: 285px; align-items: center; justify-content: space-between; gap: 18px; padding: 8px 12px 8px 10px; border: 1px solid transparent; border-radius: 12px; background: transparent; cursor: pointer; text-align: left; transition: border-color .2s, background .2s, box-shadow .2s; }
 .project-selector:hover, .project-selector:focus-visible, .project-selector[aria-expanded="true"] { border-color: #dfe7f2; background: #f8fafd; box-shadow: 0 6px 16px rgb(18 54 101 / 6%); outline: none; }
 .project-selector-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
@@ -322,6 +329,7 @@ button { color: inherit; }
 .progress-card-head { position: relative; z-index: 1; display: flex; min-height: 30px; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .progress-trend { display: inline-flex; align-items: center; gap: 4px; padding: 6px 8px; border: 1px solid #c9efda; border-radius: 999px; color: #087f3d; background: #effbf4; font-size: 11px; font-weight: 750; white-space: nowrap; }
 .progress-trend b { font-size: 13px; line-height: 1; }
+.progress-trend.behind { border-color: #f4c9cb; color: #c32931; background: #fff3f3; }
 .progress-card-body { position: relative; z-index: 1; display: flex; height: 100px; align-items: center; gap: 17px; margin-top: 3px; }
 .progress-orbit { position: relative; display: grid; width: 82px; height: 82px; aspect-ratio: 1 / 1; flex: 0 0 82px; place-items: center; border-radius: 50%; background: conic-gradient(var(--blue-600) 0 62%, #dce8fb 62% 100%); box-shadow: 0 8px 20px rgb(25 103 232 / 15%); transform: rotate(-90deg); }
 .progress-orbit::before { position: absolute; inset: 7px; content: ""; border-radius: 50%; background: linear-gradient(145deg, #fff, #f7faff); box-shadow: inset 0 0 0 1px rgb(27 106 237 / 7%); }
@@ -494,7 +502,7 @@ button { color: inherit; }
 .projects-shell .project-heading { gap: 10px; }
 .dashboard-page .project-identity-mark { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
 .dashboard-page .project-identity-mark::before { inset: 6px; border-radius: 9px; }
-.dashboard-page .project-identity-mark i { width: 10px; height: 10px; border-width: 2px; }
+.dashboard-page .project-identity-mark i { right: -5px; bottom: -5px; z-index: 10; display: block; width: 12px; height: 12px; border-width: 2px; }
 .dashboard-page .project-people { width: 21px; height: 21px; }
 .dashboard-page .project-selector { min-width: 228px; gap: 14px; padding: 6px 10px 6px 8px; border-radius: 10px; }
 .dashboard-page .project-selector-copy small { font-size: 8px; }

@@ -221,6 +221,6 @@ function logoutCurrentUser() {
 }
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/image-cache-sw.js?v=pmp-20260819-4", { updateViaCache: "none" }).catch(() => {});
+    navigator.serviceWorker.register("/image-cache-sw.js?v=pmp-20260820-1", { updateViaCache: "none" }).catch(() => {});
   }, { once: true });
 }

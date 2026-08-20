@@ -4,11 +4,12 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Project Management Panel - browse and manage project tasks." />
+    <link rel="icon" type="image/png" href="./assets/pmp_web_icon.png?v=1" />
     <title>Tasks - Project Management Panel</title>
     <script src="./js/auth-guard.js"></script>
     <link rel="stylesheet" href="./css/styles.css" />
     <link rel="stylesheet" href="./css/projects.css" />
-    <link rel="stylesheet" href="./css/tasks.css" />
+    <link rel="stylesheet" href="./css/tasks.css?v=bulk-20260819-4" />
     <link rel="stylesheet" href="./css/create-task-dialog.css" />
   </head>
   <body class="projects-shell tasks-shell">
@@ -41,8 +42,9 @@
         <header class="topbar topbar-projects">
           <div class="project-heading">
             <button class="mobile-menu" id="mobileMenu" type="button" aria-label="Open navigation"><span></span><span></span><span></span></button>
-            <span class="project-identity-mark" aria-hidden="true">
-              <svg class="project-people" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3.5 20v-2a4.5 4.5 0 0 1 4.5-4.5h2a4.5 4.5 0 0 1 4.5 4.5v2M16 8a3 3 0 0 1 0 5.8M17 20v-1.5a4.5 4.5 0 0 0-2.3-3.9"/></svg>
+            <span class="project-identity-mark" id="activeProjectMark" aria-hidden="true">
+              <img class="active-project-icon" id="activeProjectIcon" alt="" hidden />
+              <svg class="project-people" id="activeProjectIconFallback" viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3.5 20v-2a4.5 4.5 0 0 1 4.5-4.5h2a4.5 4.5 0 0 1 4.5 4.5v2M16 8a3 3 0 0 1 0 5.8M17 20v-1.5a4.5 4.5 0 0 0-2.3-3.9"/></svg>
               <i></i>
             </span>
             <div class="project-menu-wrap">
@@ -58,7 +60,13 @@
               </div>
             </div>
           </div>
-          <button class="btn-primary" id="newTaskBtn" type="button">+ New Task</button>
+          <div class="task-header-actions">
+            <button class="bulk-task-button" id="bulkTaskBtn" type="button">
+              <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 14v5h14v-5"/></svg>
+              <span>Bulk Task Upload</span>
+            </button>
+            <button class="btn-primary" id="newTaskBtn" type="button">+ New Task</button>
+          </div>
         </header>
 
         <section class="projects-page tasks-page" aria-labelledby="tasksHeading">
@@ -89,6 +97,28 @@
         </section>
       </main>
     </div>
+
+    <dialog id="bulkTaskDialog" class="task-dialog bulk-task-dialog">
+      <form method="dialog" class="dialog-card bulk-task-card" id="bulkTaskForm">
+        <button class="task-dialog-close" id="bulkTaskClose" type="button" aria-label="Close bulk task upload dialog"></button>
+        <div class="bulk-task-heading">
+          <span class="bulk-task-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 8.5 12 4l4.5 4.5"/><path d="M5 14v5h14v-5"/></svg></span>
+          <div><h3>Bulk Task Upload</h3><p>Upload main tasks and nested subtasks from a CSV file.</p></div>
+        </div>
+        <label class="bulk-file-picker" for="bulkTaskFile">
+          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v5h5M9.5 13h5M9.5 17h5"/></svg>
+          <span><strong id="bulkFileName">Choose CSV file</strong><small>Maximum 100 main tasks per upload</small></span>
+          <span class="bulk-browse-label">Browse</span>
+          <input id="bulkTaskFile" type="file" accept=".csv,text/csv" />
+        </label>
+        <div class="bulk-template-row"><span>Need the required columns and examples?</span><a href="/test_bulk_task.csv" download>Download template</a></div>
+        <div class="bulk-upload-result" id="bulkUploadResult" hidden><div class="bulk-summary" id="bulkSummary"></div><ul class="bulk-errors" id="bulkErrors"></ul></div>
+        <menu class="task-form-actions bulk-task-actions">
+          <button type="button" id="bulkTaskCancel">Cancel</button>
+          <button type="submit" class="btn-primary" id="bulkTaskSubmit" disabled>Upload Tasks</button>
+        </menu>
+      </form>
+    </dialog>
 
     <dialog id="newTaskDialog" class="task-dialog task-create-dialog">
       <form method="dialog" class="dialog-card task-form-card" id="newTaskForm">
@@ -233,6 +263,6 @@
     </dialog>
     <div class="status-menu" id="statusMenu" role="menu" hidden></div>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-    <script type="module" src="./js/tasks-live.js?v=pmp-20260819-4"></script>
+    <script type="module" src="./js/tasks-live.js?v=pmp-20260819-9"></script>
   </body>
 </html>

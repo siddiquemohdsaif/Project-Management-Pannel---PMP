@@ -16,6 +16,9 @@ const toggleAllSubtasks = byId("toggleAllSubtasks");
 const projectSelector = byId("projectSelector");
 const projectDropdown = byId("projectDropdown");
 const selectedProject = byId("selectedProject");
+const activeProjectMark = byId("activeProjectMark");
+const activeProjectIcon = byId("activeProjectIcon");
+const activeProjectIconFallback = byId("activeProjectIconFallback");
 const completeSubtasksDialog = byId("completeSubtasksDialog");
 const completeSubtasksMessage = byId("completeSubtasksMessage");
 const incompleteSubtasksList = byId("incompleteSubtasksList");
@@ -45,6 +48,14 @@ const deleteMainTaskBtn = byId("deleteMainTaskBtn");
 const confirmDeleteDialog = byId("confirmDeleteDialog");
 const confirmDeleteTitle = byId("confirmDeleteTitle");
 const confirmDeleteMessage = byId("confirmDeleteMessage");
+const bulkTaskDialog = byId("bulkTaskDialog");
+const bulkTaskForm = byId("bulkTaskForm");
+const bulkTaskFile = byId("bulkTaskFile");
+const bulkFileName = byId("bulkFileName");
+const bulkUploadResult = byId("bulkUploadResult");
+const bulkSummary = byId("bulkSummary");
+const bulkErrors = byId("bulkErrors");
+const bulkTaskSubmit = byId("bulkTaskSubmit");
 
 const statuses = ["Not Started", "In Progress", "Partially Completed", "Completed", "Blocked"];
 const priorities = ["Low", "Medium", "High"];
@@ -62,6 +73,7 @@ let editState = null;
 let toastTimer = null;
 let subtaskCounter = 0;
 let editSubtaskCounter = 0;
+let parsedBulkTasks = [];
 const expandedParents = new Set();
 
 watchFirebaseUserProfile();
@@ -139,6 +151,12 @@ byId("newTaskBtn").addEventListener("click", () => {
   prepareCreateForm();
   openDialog(newTaskDialog);
 });
+byId("bulkTaskBtn").addEventListener("click", openBulkTaskDialog);
+byId("bulkTaskCancel").addEventListener("click", closeBulkTaskDialog);
+byId("bulkTaskClose").addEventListener("click", closeBulkTaskDialog);
+bulkTaskDialog.addEventListener("click", (event) => { if (event.target === bulkTaskDialog) closeBulkTaskDialog(); });
+bulkTaskFile.addEventListener("change", readBulkTaskFile);
+bulkTaskForm.addEventListener("submit", uploadBulkTasks);
 byId("dialogCancel").addEventListener("click", closeCreateDialog);
 byId("dialogClose").addEventListener("click", closeCreateDialog);
 newTaskDialog.addEventListener("click", (event) => { if (event.target === newTaskDialog) closeCreateDialog(); });
@@ -206,6 +224,7 @@ async function loadPage() {
     activeProjectId = project.id;
     activeProjectName = project.project_name;
     selectedProject.textContent = activeProjectName;
+    renderActiveProjectIcon(project);
     localStorage.setItem("activeProjectId", activeProjectId);
     localStorage.setItem("activeProject", activeProjectName);
     const projectMemberEmails = projectMemberEmailList(project);
@@ -247,6 +266,7 @@ function hydrateCachedPage() {
   activeProjectId = project.id;
   activeProjectName = project.project_name;
   selectedProject.textContent = activeProjectName;
+  renderActiveProjectIcon(project);
   const cachedMembers = readDataCache(dataCacheKeys.members, []);
   members = membersForProject(cachedMembers, project);
   renderAssigneeFilter();
@@ -259,6 +279,23 @@ function hydrateCachedPage() {
     footerCount.textContent = "Loading tasks";
   }
   return true;
+}
+
+function renderActiveProjectIcon(project) {
+  const iconUrl = String(project?.project_icon_url || "").trim();
+  activeProjectMark.classList.toggle("has-project-icon", Boolean(iconUrl));
+  activeProjectIconFallback.hidden = Boolean(iconUrl);
+  activeProjectIcon.hidden = !iconUrl;
+  if (!iconUrl) {
+    activeProjectIcon.removeAttribute("src");
+    return;
+  }
+  activeProjectIcon.src = iconUrl;
+  activeProjectIcon.onerror = () => {
+    activeProjectMark.classList.remove("has-project-icon");
+    activeProjectIcon.hidden = true;
+    activeProjectIconFallback.hidden = false;
+  };
 }
 
 function cacheCurrentTasks() {
@@ -489,13 +526,279 @@ async function createTask(event) {
   }
 }
 
+function openBulkTaskDialog() {
+  if (!activeProjectId) return showToast("Open a project before uploading tasks.");
+  resetBulkTaskForm();
+  openDialog(bulkTaskDialog);
+}
+
+function closeBulkTaskDialog() {
+  if (bulkTaskDialog.open) bulkTaskDialog.close();
+  resetBulkTaskForm();
+}
+
+function resetBulkTaskForm() {
+  bulkTaskForm.reset();
+  parsedBulkTasks = [];
+  bulkFileName.textContent = "Choose CSV file";
+  bulkUploadResult.hidden = true;
+  bulkSummary.textContent = "";
+  bulkErrors.replaceChildren();
+  bulkTaskSubmit.disabled = true;
+  bulkTaskSubmit.textContent = "Upload Tasks";
+}
+
+async function readBulkTaskFile() {
+  const file = bulkTaskFile.files?.[0];
+  parsedBulkTasks = [];
+  bulkTaskSubmit.disabled = true;
+  bulkErrors.replaceChildren();
+  if (!file) return resetBulkTaskForm();
+  bulkFileName.textContent = file.name;
+  bulkUploadResult.hidden = false;
+
+  try {
+    if (!file.name.toLowerCase().endsWith(".csv")) throw new Error("Choose a .csv file.");
+    if (file.size > 1024 * 1024) throw new Error("CSV file must be 1 MB or smaller.");
+    const parsed = tasksFromCsv(await file.text());
+    parsedBulkTasks = parsed.tasks;
+    bulkSummary.textContent = `${parsed.tasks.length} main tasks and ${parsed.subtaskCount} subtasks ready${parsed.adjustedDateCount ? ` · ${parsed.adjustedDateCount} end dates adjusted` : ""}${parsed.ignoredDependencyCount ? ` · ${parsed.ignoredDependencyCount} unknown dependencies will be ignored` : ""}.`;
+    bulkTaskSubmit.disabled = false;
+  } catch (error) {
+    const messages = Array.isArray(error.messages) ? error.messages : [error.message || "CSV could not be read."];
+    bulkSummary.textContent = "This file needs attention before upload.";
+    bulkErrors.replaceChildren(...messages.slice(0, 12).map((message) => {
+      const item = document.createElement("li");
+      item.textContent = message;
+      return item;
+    }));
+  }
+}
+
+async function uploadBulkTasks(event) {
+  event.preventDefault();
+  if (!parsedBulkTasks.length || bulkTaskSubmit.disabled) return;
+  bulkTaskSubmit.disabled = true;
+  bulkTaskSubmit.textContent = "Uploading...";
+  try {
+    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/bulk`, postOptions({
+      tasks: parsedBulkTasks,
+      created_by: getStoredUser()?.email || ""
+    }));
+    const result = response.status === 405
+      ? await uploadBulkTasksIndividually(parsedBulkTasks)
+      : await readJson(response);
+    if (response.status !== 405 && !response.ok) throw new Error(result.error || "Tasks could not be uploaded.");
+    tasks = sortTasks([...tasks, ...(result.tasks || [])]);
+    cacheCurrentTasks();
+    renderTasks();
+    closeBulkTaskDialog();
+    const ignoredCount = Array.isArray(result.ignored_dependencies) ? result.ignored_dependencies.length : 0;
+    showToast(`${result.tasks?.length || 0} tasks uploaded${ignoredCount ? `; ${ignoredCount} dependencies ignored` : ""}.`);
+  } catch (error) {
+    bulkTaskSubmit.disabled = false;
+    bulkTaskSubmit.textContent = "Upload Tasks";
+    showToast(error.message || "Tasks could not be uploaded.");
+  }
+}
+
+async function uploadBulkTasksIndividually(taskPayloads) {
+  const createdTasks = [];
+  for (const taskPayload of taskPayloads) {
+    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks`, postOptions({
+      ...taskPayload,
+      dependency_tasks: [],
+      created_by: getStoredUser()?.email || ""
+    }));
+    const result = await readJson(response);
+    if (!response.ok) throw new Error(result.error || `Could not upload "${taskPayload.main_task_name}".`);
+    createdTasks.push(result.task);
+  }
+
+  const references = new Map();
+  [...tasks, ...createdTasks].forEach((task) => {
+    const key = taskNameKey(task.main_task_name);
+    if (key && !references.has(key)) references.set(key, task);
+  });
+  const ignoredDependencies = [];
+
+  for (let index = 0; index < createdTasks.length; index += 1) {
+    const source = taskPayloads[index];
+    const created = createdTasks[index];
+    const dependencies = [];
+    const seenIds = new Set();
+    (source.dependency_task_names || []).forEach((name) => {
+      const reference = references.get(taskNameKey(name));
+      if (!reference || reference.id === created.id) {
+        ignoredDependencies.push(name);
+        return;
+      }
+      if (seenIds.has(reference.id)) return;
+      seenIds.add(reference.id);
+      dependencies.push({ dependency_task_id: reference.id, dependency_task_name: reference.main_task_name });
+    });
+    if (!dependencies.length) continue;
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(activeProjectId)}/tasks/${encodeURIComponent(created.id)}`, patchOptions({
+      ...created,
+      dependency_tasks: dependencies
+    }));
+    const result = await readJson(response);
+    if (!response.ok) throw new Error(result.error || `Could not set dependencies for "${created.main_task_name}".`);
+    createdTasks[index] = result.task;
+  }
+
+  return { tasks: createdTasks, ignored_dependencies: [...new Set(ignoredDependencies)] };
+}
+
+function tasksFromCsv(text) {
+  const rows = parseCsv(text.replace(/^\uFEFF/, "")).filter((row) => row.some((cell) => cell.trim()));
+  if (rows.length < 2) throw new Error("CSV must contain a header and at least one task row.");
+  if (rows.length > 501) throw new Error("CSV supports up to 500 data rows.");
+  const headers = rows[0].map((header) => header.trim().toLowerCase());
+  const requiredHeaders = ["row_type", "task_name", "parent_task_name", "start_date", "end_date", "priority", "assignees", "description", "dependency_tasks"];
+  const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header));
+  if (missingHeaders.length) throw new Error(`Missing columns: ${missingHeaders.join(", ")}.`);
+
+  const records = rows.slice(1).map((row, index) => Object.fromEntries(headers.map((header, column) => [header, String(row[column] || "").trim()])));
+  const errors = [];
+  const taskMap = new Map();
+  let adjustedDateCount = 0;
+  const allowedMembers = new Set(members.map((member) => member.email));
+  const validPriorities = new Set(priorities);
+
+  records.forEach((record, index) => {
+    const line = index + 2;
+    const type = record.row_type.toLowerCase();
+    if (!record.task_name) errors.push(`Row ${line}: task_name is required.`);
+    if (!new Set(["task", "subtask"]).has(type)) errors.push(`Row ${line}: row_type must be task or subtask.`);
+    if (record.start_date && !isIsoDate(record.start_date)) errors.push(`Row ${line}: start_date must use YYYY-MM-DD.`);
+    if (record.end_date && !isIsoDate(record.end_date)) errors.push(`Row ${line}: end_date must use YYYY-MM-DD.`);
+    const priority = record.priority || "Medium";
+    if (!validPriorities.has(priority)) errors.push(`Row ${line}: priority must be Low, Medium, or High.`);
+    const assignees = splitBulkValues(record.assignees).map((email) => email.toLowerCase());
+    if (!assignees.length) errors.push(`Row ${line}: at least one assignee email is required.`);
+    assignees.filter((email) => !allowedMembers.has(email)).forEach((email) => errors.push(`Row ${line}: ${email} is not a project member.`));
+    if (type === "task" && record.task_name) {
+      const key = taskNameKey(record.task_name);
+      if (taskMap.has(key)) errors.push(`Row ${line}: duplicate main task "${record.task_name}".`);
+      else {
+        const dueDate = normalizeBulkEndDate(record.start_date, record.end_date);
+        if (dueDate !== record.end_date) adjustedDateCount += 1;
+        taskMap.set(key, {
+        main_task_name: record.task_name,
+        description: record.description,
+        status: "Not Started",
+        assignee: assignees,
+        start_date: record.start_date,
+        due_date: dueDate,
+        priority,
+        sub_tasks: [],
+        dependency_task_names: splitBulkValues(record.dependency_tasks)
+        });
+      }
+    }
+  });
+
+  records.forEach((record, index) => {
+    if (record.row_type.toLowerCase() !== "subtask") return;
+    const line = index + 2;
+    if (!record.parent_task_name) {
+      errors.push(`Row ${line}: parent_task_name is required for a subtask.`);
+      return;
+    }
+    const parent = taskMap.get(taskNameKey(record.parent_task_name));
+    if (!parent) {
+      errors.push(`Row ${line}: parent task "${record.parent_task_name}" is not in this CSV.`);
+      return;
+    }
+    const dueDate = normalizeBulkEndDate(record.start_date, record.end_date);
+    if (dueDate !== record.end_date) adjustedDateCount += 1;
+    parent.sub_tasks.push({
+      sub_task_name: record.task_name,
+      status: "Not Started",
+      assignee: splitBulkValues(record.assignees).map((email) => email.toLowerCase()),
+      start_date: record.start_date,
+      due_date: dueDate,
+      priority: record.priority || "Medium"
+    });
+  });
+
+  if (!taskMap.size) errors.push("Add at least one row with row_type set to task.");
+  if (taskMap.size > 100) errors.push("Upload up to 100 main tasks at a time.");
+  if (errors.length) {
+    const error = new Error(errors[0]);
+    error.messages = errors;
+    throw error;
+  }
+
+  const knownTaskNames = new Set([...tasks.map((task) => taskNameKey(task.main_task_name)), ...taskMap.keys()]);
+  const ignoredDependencyCount = [...taskMap.values()].flatMap((task) => task.dependency_task_names)
+    .filter((name) => !knownTaskNames.has(taskNameKey(name))).length;
+  return {
+    tasks: [...taskMap.values()],
+    subtaskCount: [...taskMap.values()].reduce((count, task) => count + task.sub_tasks.length, 0),
+    ignoredDependencyCount,
+    adjustedDateCount
+  };
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index];
+    if (quoted) {
+      if (character === '"' && text[index + 1] === '"') { field += '"'; index += 1; }
+      else if (character === '"') quoted = false;
+      else field += character;
+    } else if (character === '"') quoted = true;
+    else if (character === ",") { row.push(field); field = ""; }
+    else if (character === "\n") { row.push(field.replace(/\r$/, "")); rows.push(row); row = []; field = ""; }
+    else field += character;
+  }
+  if (quoted) throw new Error("CSV contains an unclosed quoted value.");
+  if (field || row.length) { row.push(field.replace(/\r$/, "")); rows.push(row); }
+  return rows;
+}
+
+function splitBulkValues(value) {
+  return String(value || "").split(";").map((item) => item.trim()).filter(Boolean);
+}
+
+function taskNameKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function isIsoDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+function normalizeBulkEndDate(startDate, dueDate) {
+  return hasInvalidDateRange(startDate, dueDate) ? startDate : dueDate;
+}
+
+function hasInvalidDateRange(startDate, dueDate) {
+  return Boolean(startDate && dueDate && dateTime(dueDate) < dateTime(startDate));
+}
+
+function manualDateError(task) {
+  if (hasInvalidDateRange(task.start_date, task.due_date)) return "End date cannot be earlier than start date.";
+  const invalidSubtask = (task.sub_tasks || []).find((subtask) => hasInvalidDateRange(subtask.start_date, subtask.due_date));
+  return invalidSubtask ? `End date for subtask "${invalidSubtask.sub_task_name}" cannot be earlier than its start date.` : "";
+}
+
 function payloadFromCreateForm() {
   const data = new FormData(newTaskForm);
   const assignee = getCheckedValues("assignees", newTaskForm);
   const name = String(data.get("name") || "").trim();
   if (!name) return showToast("Task name is required."), null;
   if (!assignee.length) return showToast("Choose at least one assignee."), null;
-  const task = normalizeTaskDates({
+  const task = {
     main_task_name: name,
     description: String(data.get("description") || "").trim(),
     status: "Not Started",
@@ -509,7 +812,10 @@ function payloadFromCreateForm() {
       dependency_task_name: tasks.find((task) => task.id === id)?.main_task_name || id
     })),
     created_by: getStoredUser()?.email || ""
-  });
+  };
+  const dateError = manualDateError(task);
+  if (dateError) return showToast(dateError), null;
+  normalizeTaskDates(task);
   if (task.due_date !== String(data.get("end") || "")) showToast("Main task end date adjusted to match latest subtask end date.");
   return task;
 }
@@ -575,23 +881,30 @@ async function saveEditedTask(event) {
   if (!name) return showToast("Task name is required.");
   if (!assignee.length) return showToast("Choose at least one assignee.");
 
+  const editStartDate = String(data.get("edit-start") || "");
+  const editDueDate = String(data.get("edit-end") || "");
+
   if (editState.mode === "subtask") {
+    if (hasInvalidDateRange(editStartDate, editDueDate)) return showToast("End date cannot be earlier than start date.");
     Object.assign(editState.subtask, {
       sub_task_name: name,
       assignee,
-      start_date: String(data.get("edit-start") || ""),
-      due_date: String(data.get("edit-end") || ""),
+      start_date: editStartDate,
+      due_date: editDueDate,
       priority: String(data.get("edit-priority") || "Medium")
     });
   } else {
+    const editedSubtasks = collectSubtasks(editTaskForm, editSubtaskEditorList);
+    const dateError = manualDateError({ start_date: editStartDate, due_date: editDueDate, sub_tasks: editedSubtasks });
+    if (dateError) return showToast(dateError);
     Object.assign(editState.task, {
       main_task_name: name,
       description: String(data.get("edit-description") || "").trim(),
       assignee,
-      start_date: String(data.get("edit-start") || ""),
-      due_date: String(data.get("edit-end") || ""),
+      start_date: editStartDate,
+      due_date: editDueDate,
       priority: String(data.get("edit-priority") || "Medium"),
-      sub_tasks: collectSubtasks(editTaskForm, editSubtaskEditorList),
+      sub_tasks: editedSubtasks,
       dependency_tasks: getCheckedValues("edit-dependencies", editTaskForm).map((id) => ({
         dependency_task_id: id,
         dependency_task_name: tasks.find((task) => task.id === id)?.main_task_name || id

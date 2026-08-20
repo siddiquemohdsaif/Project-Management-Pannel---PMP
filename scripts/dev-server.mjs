@@ -442,6 +442,7 @@ function publicTaskDocument(task) {
     })) : [],
     created_by: task.created_by || "",
     created_at: task.created_at || "",
+    completed_at: task.completed_at || "",
     updated_at: task.updated_at || ""
   };
 }
@@ -453,27 +454,40 @@ function cleanTaskPayload(payload, existingTask = {}) {
   const assignee = normalizeAssignees(payload.assignee);
   if (!assignee.length) throw new Error("Choose a task assignee.");
 
-  const subTasks = (Array.isArray(payload.sub_tasks) ? payload.sub_tasks : []).map((subtask) => ({
-    sub_task_name: String(subtask.sub_task_name || "").trim(),
-    status: normalizeTaskStatus(subtask.status),
-    assignee: normalizeAssignees(subtask.assignee),
-    start_date: normalizeTaskDate(subtask.start_date),
-    due_date: normalizeTaskDate(subtask.due_date),
-    priority: normalizeTaskPriority(subtask.priority)
-  })).filter((subtask) => subtask.sub_task_name);
+  const subTasks = (Array.isArray(payload.sub_tasks) ? payload.sub_tasks : []).map((subtask) => {
+    const startDate = normalizeTaskDate(subtask.start_date);
+    const dueDate = normalizeEndDate(startDate, normalizeTaskDate(subtask.due_date));
+    return {
+      sub_task_name: String(subtask.sub_task_name || "").trim(),
+      status: normalizeTaskStatus(subtask.status),
+      assignee: normalizeAssignees(subtask.assignee),
+      start_date: startDate,
+      due_date: dueDate,
+      priority: normalizeTaskPriority(subtask.priority)
+    };
+  }).filter((subtask) => subtask.sub_task_name);
   let status = normalizeTaskStatus(payload.status);
   if (status === "Completed") {
     subTasks.forEach((subtask) => { subtask.status = "Completed"; });
   }
-  const dueDate = normalizeMainDueDate(normalizeTaskDate(payload.due_date), subTasks);
+  const previousStatus = normalizeTaskStatus(existingTask.status);
+  let completedAt = String(existingTask.completed_at || "").trim();
+  if (status === "Completed" && (previousStatus !== "Completed" || !completedAt)) {
+    completedAt = new Date().toISOString();
+  } else if (status !== "Completed") {
+    completedAt = "";
+  }
+  const startDate = normalizeTaskDate(payload.start_date);
+  const dueDate = normalizeEndDate(startDate, normalizeMainDueDate(normalizeTaskDate(payload.due_date), subTasks));
 
   return {
     ...existingTask,
     main_task_name: taskName,
     description: String(payload.description || "").trim(),
     status,
+    completed_at: completedAt,
     assignee,
-    start_date: normalizeTaskDate(payload.start_date),
+    start_date: startDate,
     due_date: dueDate,
     priority: normalizeTaskPriority(payload.priority),
     sub_tasks: subTasks,
@@ -482,6 +496,11 @@ function cleanTaskPayload(payload, existingTask = {}) {
       dependency_task_name: String(dependency.dependency_task_name || "").trim()
     })).filter((dependency) => dependency.dependency_task_id || dependency.dependency_task_name)
   };
+}
+
+function normalizeEndDate(startDate, dueDate) {
+  if (startDate && dueDate && taskDateTime(dueDate) < taskDateTime(startDate)) return startDate;
+  return dueDate;
 }
 
 function normalizeMainDueDate(mainDueDate, subTasks) {
@@ -738,6 +757,97 @@ async function handleProjectTasks(request, response, projectDocId) {
   sendJson(response, 405, { error: "Method not allowed" });
 }
 
+function taskNameKey(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function handleBulkProjectTasks(request, response, projectDocId) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const payload = await readRequestJson(request);
+    const taskPayloads = Array.isArray(payload.tasks) ? payload.tasks : [];
+    if (!taskPayloads.length) throw new Error("The CSV does not contain any main tasks.");
+    if (taskPayloads.length > 100) throw new Error("Upload up to 100 main tasks at a time.");
+
+    const project = publicProjectDocument(await readCloudsw3Project(projectDocId));
+    if (!project.id) throw new Error("Project not found.");
+    const allowedMembers = new Set(project.member_emails.map((email) => String(email).trim().toLowerCase()));
+    const seenNames = new Set();
+    const now = formatIndiaDateTime();
+
+    const prepared = taskPayloads.map((rawTask) => {
+      const key = taskNameKey(rawTask.main_task_name);
+      if (!key) throw new Error("Every main task needs a task name.");
+      if (seenNames.has(key)) throw new Error(`Duplicate main task in CSV: ${rawTask.main_task_name}`);
+      seenNames.add(key);
+
+      const clean = cleanTaskPayload({
+        ...rawTask,
+        status: "Not Started",
+        dependency_tasks: []
+      });
+      const allAssignees = [clean.assignee, ...clean.sub_tasks.map((subtask) => subtask.assignee)].flat();
+      const invalidAssignee = allAssignees.find((email) => !allowedMembers.has(email));
+      if (invalidAssignee) throw new Error(`${invalidAssignee} is not a member of this project.`);
+      const subtaskWithoutAssignee = clean.sub_tasks.find((subtask) => !subtask.assignee.length);
+      if (subtaskWithoutAssignee) throw new Error(`Choose an assignee for subtask "${subtaskWithoutAssignee.sub_task_name}".`);
+
+      return {
+        _id: taskDocIdFromName(clean.main_task_name),
+        ...clean,
+        dependency_task_names: (Array.isArray(rawTask.dependency_task_names) ? rawTask.dependency_task_names : [])
+          .map((name) => String(name || "").trim())
+          .filter(Boolean),
+        created_by: String(payload.created_by || "").trim().toLowerCase(),
+        created_at: now,
+        updated_at: now
+      };
+    });
+
+    const existingTasks = (await readCloudsw3Tasks(projectDocId)).map(publicTaskDocument);
+    const taskReferences = new Map();
+    existingTasks.forEach((task) => {
+      const key = taskNameKey(task.main_task_name);
+      if (key && !taskReferences.has(key)) taskReferences.set(key, { id: task.id, name: task.main_task_name });
+    });
+    prepared.forEach((task) => {
+      const key = taskNameKey(task.main_task_name);
+      if (!taskReferences.has(key)) taskReferences.set(key, { id: task._id, name: task.main_task_name });
+    });
+
+    const ignoredDependencies = [];
+    prepared.forEach((task) => {
+      const resolved = new Map();
+      task.dependency_task_names.forEach((dependencyName) => {
+        const reference = taskReferences.get(taskNameKey(dependencyName));
+        if (!reference || reference.id === task._id) {
+          ignoredDependencies.push(dependencyName);
+          return;
+        }
+        resolved.set(reference.id, {
+          dependency_task_id: reference.id,
+          dependency_task_name: reference.name
+        });
+      });
+      task.dependency_tasks = [...resolved.values()];
+      delete task.dependency_task_names;
+    });
+
+    for (const task of prepared) await createCloudsw3Task(projectDocId, task);
+    await refreshProjectTaskCount(projectDocId);
+    sendJson(response, 201, {
+      tasks: prepared.map(publicTaskDocument),
+      ignored_dependencies: [...new Set(ignoredDependencies)]
+    });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Tasks could not be uploaded." });
+  }
+}
+
 async function handleProjectTaskDetail(request, response, projectDocId, taskDocId) {
   if (request.method === "PATCH") {
     try {
@@ -880,6 +990,12 @@ createServer(async (request, response) => {
   const tasksMatch = requestPath.match(/^\/api\/projects\/([^/]+)\/tasks$/);
   if (tasksMatch) {
     await handleProjectTasks(request, response, tasksMatch[1]);
+    return;
+  }
+
+  const bulkTasksMatch = requestPath.match(/^\/api\/projects\/([^/]+)\/tasks\/bulk$/);
+  if (bulkTasksMatch) {
+    await handleBulkProjectTasks(request, response, bulkTasksMatch[1]);
     return;
   }
 
