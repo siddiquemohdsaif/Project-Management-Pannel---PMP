@@ -64,7 +64,7 @@ byId("sidebarClose").addEventListener("click", () => setSidebar(false));
 sidebarScrim.addEventListener("click", () => setSidebar(false));
 document.querySelectorAll("[data-route]").forEach((button) => button.addEventListener("click", () => { window.location.href = button.dataset.route; }));
 document.querySelectorAll("[data-screen]").forEach((button) => button.addEventListener("click", () => {
-  const routes = { Projects: "/projects", Tasks: "/tasks", Members: "/members", Activity: "/activity", Settings: "/settings" };
+  const routes = { Projects: "/projects", Tasks: "/tasks", Members: "/members", Attendance: "/attendance", Reports: "/attendance", Activity: "/activity", Settings: "/settings" };
   if (routes[button.dataset.screen]) window.location.href = routes[button.dataset.screen];
   else if (button.dataset.screen !== "Profiles") showToast(`${button.dataset.screen} is planned next.`);
 }));

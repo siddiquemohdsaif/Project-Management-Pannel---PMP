@@ -270,11 +270,51 @@ async function readCloudsw3Activities() {
   return readCloudsw3Collection("Activities", "/");
 }
 
+async function readCloudsw3AttendanceSessions() {
+  return readCloudsw3Collection("AttendanceSessions", "/", 1000);
+}
+
+async function readCloudsw3AttendanceRemarks() {
+  return readCloudsw3Collection("AttendanceRemarks", "/", 1000);
+}
+
+async function readCloudsw3CompanyHolidays() {
+  return readCloudsw3Collection("CompanyHolidays", "/", 1000);
+}
+
 async function createCloudsw3Activity(activity) {
   return cloudsw3Request("cr?collName=Activities&parentPath=/", {
     method: "POST",
     body: JSON.stringify(activity)
   });
+}
+
+async function createCloudsw3AttendanceSession(session) {
+  return cloudsw3Request("cr?collName=AttendanceSessions&parentPath=/", {
+    method: "POST",
+    body: JSON.stringify(session)
+  });
+}
+
+async function updateCloudsw3AttendanceSession(sessionDocId, session) {
+  return cloudsw3Request("upd?collName=AttendanceSessions&parentPath=/", {
+    method: "POST",
+    body: JSON.stringify({ ...session, _id: sessionDocId })
+  });
+}
+
+async function upsertCloudsw3RootDocument(collName, doc) {
+  try {
+    return await cloudsw3Request(`upd?collName=${encodeURIComponent(collName)}&parentPath=/`, {
+      method: "POST",
+      body: JSON.stringify(doc)
+    });
+  } catch {
+    return cloudsw3Request(`cr?collName=${encodeURIComponent(collName)}&parentPath=/`, {
+      method: "POST",
+      body: JSON.stringify(doc)
+    });
+  }
 }
 
 async function createCloudsw3User(userDocId, user) {
@@ -1218,6 +1258,241 @@ async function handleMembersList(request, response) {
   }
 }
 
+function attendanceDocId(prefix = "attendance") {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function normalizeAttendanceEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email || !email.includes("@")) throw new Error("A member email is required.");
+  return email;
+}
+
+function normalizeDateKey(value) {
+  const date = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("A valid date is required.");
+  return date;
+}
+
+function publicAttendanceSessionDocument(session) {
+  return {
+    id: session._id || session.id || "",
+    member_email: String(session.member_email || session.email || "").trim().toLowerCase(),
+    login_at: session.login_at || "",
+    logout_at: session.logout_at || "",
+    breaks: Array.isArray(session.breaks) ? session.breaks.map((item) => ({
+      start_at: item.start_at || "",
+      end_at: item.end_at || ""
+    })) : [],
+    created_at: session.created_at || "",
+    updated_at: session.updated_at || ""
+  };
+}
+
+function publicAttendanceRemarkDocument(remark) {
+  return {
+    id: remark._id || remark.id || "",
+    member_email: String(remark.member_email || "").trim().toLowerCase(),
+    date: remark.date || "",
+    remark: ["Leave", "Absent"].includes(remark.remark) ? remark.remark : "Absent",
+    created_at: remark.created_at || "",
+    updated_at: remark.updated_at || ""
+  };
+}
+
+function publicCompanyHolidayDocument(holiday) {
+  return {
+    id: holiday._id || holiday.id || "",
+    date: holiday.date || "",
+    is_holiday: holiday.is_holiday !== false,
+    is_working_override: holiday.is_working_override === true,
+    created_at: holiday.created_at || "",
+    updated_at: holiday.updated_at || ""
+  };
+}
+
+function attendanceRemarkDocId(email, date) {
+  return `remark-${userDocIdFromEmail(email)}-${date}`;
+}
+
+function companyHolidayDocId(date) {
+  return `company-holiday-${date}`;
+}
+
+function openAttendanceSession(sessions, email) {
+  return sessions
+    .map(publicAttendanceSessionDocument)
+    .filter((session) => session.member_email === email && session.login_at && !session.logout_at)
+    .sort((left, right) => Date.parse(right.login_at) - Date.parse(left.login_at))[0];
+}
+
+async function handleAttendanceList(request, response) {
+  if (request.method !== "GET") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const requestUrl = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+    const requestedEmail = String(requestUrl.searchParams.get("member_email") || "").trim().toLowerCase();
+    const [sessionDocs, remarkDocs] = await Promise.all([
+      readCloudsw3AttendanceSessions(),
+      readCloudsw3AttendanceRemarks()
+    ]);
+    const sessions = (Array.isArray(sessionDocs) ? sessionDocs : [])
+      .map(publicAttendanceSessionDocument)
+      .filter((session) => session.member_email)
+      .filter((session) => !requestedEmail || session.member_email === requestedEmail)
+      .sort((left, right) => Date.parse(right.login_at) - Date.parse(left.login_at));
+    const remarks = (Array.isArray(remarkDocs) ? remarkDocs : [])
+      .map(publicAttendanceRemarkDocument)
+      .filter((remark) => remark.member_email && remark.date)
+      .filter((remark) => !requestedEmail || remark.member_email === requestedEmail);
+    sendJson(response, 200, { sessions, remarks });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Attendance could not be loaded." });
+  }
+}
+
+async function handleAttendanceAction(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const payload = await readRequestJson(request);
+    const actorEmail = normalizeAttendanceEmail(payload.actor_email);
+    const memberEmail = normalizeAttendanceEmail(payload.member_email || payload.actor_email);
+    if (actorEmail !== memberEmail) throw new Error("Members can modify only their own attendance.");
+    const action = String(payload.action || "").trim();
+    const now = new Date().toISOString();
+    const sessionDocs = await readCloudsw3AttendanceSessions();
+    const openSession = openAttendanceSession(sessionDocs, memberEmail);
+
+    if (action === "login") {
+      if (openSession) {
+        sendJson(response, 200, { session: openSession, alreadyOpen: true });
+        return;
+      }
+      const session = {
+        _id: attendanceDocId("session"),
+        member_email: memberEmail,
+        login_at: now,
+        logout_at: "",
+        breaks: [],
+        created_at: now,
+        updated_at: now
+      };
+      await createCloudsw3AttendanceSession(session);
+      sendJson(response, 201, { session: publicAttendanceSessionDocument(session) });
+      return;
+    }
+
+    if (!openSession) throw new Error("Login first before using this attendance action.");
+
+    if (action === "start_break") {
+      if (openSession.breaks.some((item) => item.start_at && !item.end_at)) throw new Error("A break is already running.");
+      const session = { ...openSession, breaks: [...openSession.breaks, { start_at: now, end_at: "" }], updated_at: now };
+      await updateCloudsw3AttendanceSession(session.id, session);
+      sendJson(response, 200, { session });
+      return;
+    }
+
+    if (action === "end_break") {
+      const breaks = [...openSession.breaks];
+      const index = breaks.findIndex((item) => item.start_at && !item.end_at);
+      if (index < 0) throw new Error("No running break found.");
+      breaks[index] = { ...breaks[index], end_at: now };
+      const session = { ...openSession, breaks, updated_at: now };
+      await updateCloudsw3AttendanceSession(session.id, session);
+      sendJson(response, 200, { session });
+      return;
+    }
+
+    if (action === "logout") {
+      const breaks = openSession.breaks.map((item) => item.start_at && !item.end_at ? { ...item, end_at: now } : item);
+      const session = { ...openSession, breaks, logout_at: now, updated_at: now };
+      await updateCloudsw3AttendanceSession(session.id, session);
+      sendJson(response, 200, { session });
+      return;
+    }
+
+    throw new Error("Unknown attendance action.");
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Attendance action failed." });
+  }
+}
+
+async function handleAttendanceRemark(request, response) {
+  if (request.method !== "POST") {
+    sendJson(response, 405, { error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const payload = await readRequestJson(request);
+    const actorEmail = normalizeAttendanceEmail(payload.actor_email);
+    const memberEmail = normalizeAttendanceEmail(payload.member_email || payload.actor_email);
+    if (actorEmail !== memberEmail) throw new Error("Members can modify only their own remarks.");
+    const date = normalizeDateKey(payload.date);
+    const remarkValue = String(payload.remark || "").trim();
+    if (!["Leave", "Absent"].includes(remarkValue)) throw new Error("Remark must be Leave or Absent.");
+    const now = new Date().toISOString();
+    const remark = {
+      _id: attendanceRemarkDocId(memberEmail, date),
+      member_email: memberEmail,
+      date,
+      remark: remarkValue,
+      created_at: payload.created_at || now,
+      updated_at: now
+    };
+    await upsertCloudsw3RootDocument("AttendanceRemarks", remark);
+    sendJson(response, 200, { remark: publicAttendanceRemarkDocument(remark) });
+  } catch (error) {
+    sendJson(response, 400, { error: error.message || "Attendance remark failed." });
+  }
+}
+
+async function handleCompanyHolidays(request, response) {
+  if (request.method === "GET") {
+    try {
+      const docs = await readCloudsw3CompanyHolidays();
+      const holidays = (Array.isArray(docs) ? docs : [])
+        .map(publicCompanyHolidayDocument)
+        .filter((holiday) => holiday.date);
+      sendJson(response, 200, { holidays });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Company holidays could not be loaded." });
+    }
+    return;
+  }
+
+  if (request.method === "POST") {
+    try {
+      const payload = await readRequestJson(request);
+      normalizeAttendanceEmail(payload.actor_email);
+      const date = normalizeDateKey(payload.date);
+      const now = new Date().toISOString();
+      const holiday = {
+        _id: companyHolidayDocId(date),
+        date,
+        is_holiday: payload.is_holiday === true,
+        is_working_override: payload.is_working_override === true,
+        created_at: payload.created_at || now,
+        updated_at: now
+      };
+      await upsertCloudsw3RootDocument("CompanyHolidays", holiday);
+      sendJson(response, 200, { holiday: publicCompanyHolidayDocument(holiday) });
+    } catch (error) {
+      sendJson(response, 400, { error: error.message || "Company holiday update failed." });
+    }
+    return;
+  }
+
+  sendJson(response, 405, { error: "Method not allowed" });
+}
+
 async function handleGoogleAuth(request, response) {
   if (request.method !== "POST") {
     sendJson(response, 405, { error: "Method not allowed" });
@@ -1279,6 +1554,26 @@ createServer(async (request, response) => {
     return;
   }
 
+  if (requestPath === "/api/attendance") {
+    await handleAttendanceList(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/attendance/action") {
+    await handleAttendanceAction(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/attendance/remarks") {
+    await handleAttendanceRemark(request, response);
+    return;
+  }
+
+  if (requestPath === "/api/company-holidays") {
+    await handleCompanyHolidays(request, response);
+    return;
+  }
+
   if (requestPath === "/api/projects") {
     await handleProjectsList(request, response);
     return;
@@ -1314,6 +1609,8 @@ createServer(async (request, response) => {
     "/gantt": "gantt.html",
     "/projects": "projects.html",
     "/members": "members.html",
+    "/attendance": "reports.html",
+    "/reports": "reports.html",
     "/tasks": "tasks.html",
     "/activity": "activity.html",
     "/settings": "settings.html"

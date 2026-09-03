@@ -111,7 +111,7 @@ document.addEventListener("keydown", (event) => {
 
 document.querySelectorAll("[data-screen]").forEach((button) => {
   button.addEventListener("click", () => {
-    const routes = { Dashboard: "/dashboard", Projects: "/projects", "Gantt Chart": "/gantt", Members: "/members", Activity: "/activity", Settings: "/settings" };
+    const routes = { Dashboard: "/dashboard", Projects: "/projects", "Gantt Chart": "/gantt", Members: "/members", Attendance: "/attendance", Reports: "/attendance", Activity: "/activity", Settings: "/settings" };
     if (routes[button.dataset.screen]) window.location.href = routes[button.dataset.screen];
   });
 });

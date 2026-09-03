@@ -103,6 +103,7 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
     if (screen === "Projects") { window.location.href = "/projects"; return; }
     if (screen === "Gantt Chart") { window.location.href = "/gantt"; return; }
     if (screen === "Members") { window.location.href = "/members"; return; }
+    if (screen === "Attendance" || screen === "Reports") { window.location.href = "/attendance"; return; }
     if (screen === "Activity") { window.location.href = "/activity"; return; }
     if (screen === "Settings") { window.location.href = "/settings"; return; }
     setSidebar(false);

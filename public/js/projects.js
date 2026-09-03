@@ -55,6 +55,7 @@ document.querySelectorAll("[data-screen]").forEach((btn) => {
     if (screen === "Gantt Chart") { window.location.href = "/gantt"; return; }
     if (screen === "Tasks") { window.location.href = "/tasks"; return; }
     if (screen === "Members") { window.location.href = "/members"; return; }
+    if (screen === "Attendance" || screen === "Reports") { window.location.href = "/attendance"; return; }
     if (screen === "Activity") { window.location.href = "/activity"; return; }
     if (screen === "Settings") { window.location.href = "/settings"; return; }
     if (screen === "Projects") return;

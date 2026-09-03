@@ -86,6 +86,8 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
       Tasks: "/tasks",
       "Gantt Chart": "/gantt",
       Members: "/members",
+      Attendance: "/attendance",
+      Reports: "/attendance",
       Activity: "/activity",
       Settings: "/settings"
     };
@@ -96,7 +98,7 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
 
 document.querySelectorAll("[data-tab]").forEach((tab) => {
   tab.addEventListener("click", () => {
-    const routes = { Tasks: "/tasks", Gantt: "/gantt", Members: "/members", Activity: "/activity" };
+    const routes = { Tasks: "/tasks", Gantt: "/gantt", Members: "/members", Attendance: "/attendance", Reports: "/attendance", Activity: "/activity" };
     if (routes[tab.dataset.tab]) window.location.href = routes[tab.dataset.tab];
   });
 });

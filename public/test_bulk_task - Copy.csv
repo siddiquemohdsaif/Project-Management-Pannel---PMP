@@ -1,9 +1,0 @@
-row_type,task_name,parent_task_name,start_date,end_date,priority,assignees,description,dependency_tasks
-task,API Foundation,,2026-08-01,2026-08-05,High,desktop.s3.2002@gmail.com,"Create the API contract, validation, and base endpoints",
-subtask,Define API contract,API Foundation,2026-09-01,2026-08-02,High,laptop3.official@gmail.com,,
-subtask,Build authentication endpoint,API Foundation,2026-09-02,2026-09-05,High,"desktop.s3.2002@gmail.com;siddiquemohdshabir123@gmail.com",,
-task,Mobile Login Screen,,2026-09-06,2026-09-10,Medium,"laptop3.official@gmail.com;siddiquemohdshabir123@gmail.com","Build and connect the mobile login screen","API Foundation;Task That Does Not Exist"
-subtask,Create login layout,Mobile Login Screen,2026-09-06,2026-09-08,Medium,laptop3.official@gmail.com,,
-subtask,Connect login API,Mobile Login Screen,2026-09-08,2026-09-10,High,desktop.s3.2002@gmail.com,,
-task,Release Preparation,,2026-09-11,2026-09-13,Low,siddiquemohdshabir123@gmail.com,"Run final checks and prepare the internal release",Mobile Login Screen
-subtask,Regression check,Release Preparation,2026-09-11,2026-09-13,Medium,"desktop.s3.2002@gmail.com;laptop3.official@gmail.com",,

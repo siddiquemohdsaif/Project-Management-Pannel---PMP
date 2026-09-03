@@ -55,6 +55,7 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
     if (screen === "Tasks") { window.location.href = "/tasks"; return; }
     if (screen === "Gantt Chart") { window.location.href = "/gantt"; return; }
     if (screen === "Members") { window.location.href = "/members"; return; }
+    if (screen === "Attendance" || screen === "Reports") { window.location.href = "/attendance"; return; }
     if (screen === "Activity") { window.location.href = "/activity"; return; }
     if (screen === "Settings") return;
     setSidebar(false);

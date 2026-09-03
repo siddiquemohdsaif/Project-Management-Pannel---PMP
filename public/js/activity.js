@@ -49,6 +49,8 @@ document.querySelectorAll("[data-screen]").forEach((button) => {
       Tasks: "/tasks",
       "Gantt Chart": "/gantt",
       Members: "/members",
+      Attendance: "/attendance",
+      Reports: "/attendance",
       Settings: "/settings"
     };
     if (routes[button.dataset.screen]) window.location.href = routes[button.dataset.screen];
