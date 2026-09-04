@@ -270,12 +270,11 @@ function renderReport() {
   scopePill.textContent = isSelf ? "Self edit mode" : "View-only mode";
   const openSession = currentOpenSession(member.email);
   const runningBreak = openSession?.breaks?.some((item) => item.start_at && !item.end_at);
-  byId("currentState").textContent = isAttendanceLoading ? "Loading" : !isSelf ? "Report only" : runningBreak ? "On Break" : openSession ? "Working" : "Not logged in";
+  byId("currentState").textContent = isAttendanceLoading ? "Loading" : runningBreak ? "On Break" : openSession ? "Working" : "Not logged in";
   byId("currentTimer").textContent = isAttendanceLoading ? "--" : openSession ? formatMinutes(Math.max(0, Math.round((new Date() - new Date(openSession.login_at || openSession.in)) / 60000))) : "--";
-  byId("stateHint").textContent = !isSelf
-    ? "Only this member can modify their own attendance"
-    : isAttendanceLoading ? "Fetching your latest attendance"
-      : openSession ? `Logged in at ${formatTime(new Date(openSession.login_at || openSession.in))}` : "Multiple login and logout sessions allowed";
+  byId("stateHint").textContent = isAttendanceLoading
+    ? isSelf ? "Fetching your latest attendance" : "Fetching member attendance"
+    : openSession ? `Logged in at ${formatTime(new Date(openSession.login_at || openSession.in))}` : "Multiple login and logout sessions allowed";
   document.querySelectorAll("#attendanceActions button").forEach((button) => {
     const action = button.dataset.action;
     button.disabled = isAttendanceLoading
